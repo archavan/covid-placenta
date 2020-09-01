@@ -1,0 +1,70 @@
+---
+title: "Reference cell atlas for decidua and villi"
+subtitle: 
+author: "Arun Chavan"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    number_sections: true
+bibliography: ../refs.bib
+---
+Started: 2020-08-31  
+Last edited: `r format(Sys.time())`
+
+```{r message=FALSE, warning=FALSE}
+### packages
+library(tidyverse)
+library(scater)
+```
+
+# Background
+The goal here is to create a reference set of celltype-specific transcriptomes for cell types present at the human fetal-maternal interface. Ideally we want bulk-representations of transcriptomes for all cell types. We can compare (by calculating correlation coefficients, e.g.) these to the averaged trancriptomes for each cluster from our data. The cell type to which a cluster has the highest similarity, is likely the cell type represented by that cluster. We can subsequently manually verify each of these assignments.   
+
+We can use data from previous single cell RNA-seq studies to do this. There are three studies that we can use. 
+
+1. [@pavlicev_single-cell_2017]: This is scRNA-seq of the villi at term. Appended to the villi data are also bulk transcriptomes of endometrial stormal fibroblasts (ESF) and decidual stromal cells (DSC) from primary cultures. Since this is an old fluidigm-based study, the number of cells is smaller compared to 10x. 
+2. [@vento-tormo_single-cell_2018]: This is scRNA-seq of fetal-maternal interface in the first trimester. 
+3. [@suryawanshi_single-cell_2018]: This is also scRNA-seq of fetal-maternal interface in the first trimester. 
+
+Of these studies, [@pavlicev_single-cell_2017] is the only dataset from term samples. Even though our data are from term samples, it would be worth it to compare them to the first-trimester data from [@vento-tormo_single-cell_2018] and [@suryawanshi_single-cell_2018]. There are many cell types at the fetal-maternal interface that don't change through pregnancy---they can be easily cross-mapped even with the first-trimester data. Even for cell types that do change, we could use this comparison to narrow down their identities.
+
+
+# Get data in shape
+The data from all three studies are in different formats, use different gene names etc. We need to first get them all in shape and make them comparable. 
+
+## Vento-Tormo et al
+The raw feature by barcode counts matrix from the 10x runs (`raw_data_10x.txt`) were downloaded from ArrayExpress accession [E-MTAB-6701](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6701/files/). The associated metadata file `meta_10x.txt` contains cell metadata including cluster ids and cell type annotations. 
+
+We want to (1) read these data, (2) sum counts for all cell with the same cell type annotation, and (3) normalize counts to counts per million (cpm). This gives us bulk-representation of the transcriptomes for all annotated cell types. 
+
+```{r}
+### read data
+vento.meta <- read.table("../info/from-papers/vento-tormo_2018/10x_arrayexpress/meta_10x.txt", header = TRUE, sep = "\t")
+vento.raw <- readSparseCounts("../info/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE)  # have to use readSparseCounts because the file is too big. 
+```
+
+```{r}
+dim(vento.raw)
+head(vento.raw[, 1:2])   # first five few rows and columns
+
+head(vento.meta, 10)  # cell metadata
+```
+This contains data for `r dim(vento.raw)[1]` genes and `r dim(vento.raw)[2]` cells. 
+
+```{r}
+### create SingleCellExperiment object
+vento.sce <- SingleCellExperiment(assays = list(counts = vento.raw))
+
+
+
+```
+
+# Session Info
+```{r}
+sessionInfo()
+```
+
+# References
+
+
