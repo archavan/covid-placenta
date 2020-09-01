@@ -41,3 +41,5 @@ vignettes/*.pdf
 ### additions below this
 **/data
 **/info
+**/results
+
