@@ -46,7 +46,7 @@ vento.meta <- read.table("../info/from-papers/vento-tormo_2018/10x_arrayexpress/
 vento.raw <- readSparseCounts("../info/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE)  # have to use readSparseCounts because the file is too big. 
 ```
 
-The counts matrix is for `r dim(vento.raw)[2]` cells. 
+The counts matrix is for 64734 cells. 
 ```{r}
 dim(vento.raw)
 head(vento.raw[, 1:2])   # first five few rows and columns
@@ -132,8 +132,96 @@ rownames(vento.cpm) <- NULL
 
 # write
 write.csv(vento.cpm, file = "../results/01_reference-atlas/vento-tormo_cpm-by-celltype.csv", row.names = FALSE)
+
+# remove full dataset
+rm(vento.raw)
+rm(vento.sce)
 ```
 
+## Suryawanshi et al
+[@suryawanshi_single-cell_2018] have provided TP10K normalized, averaged by cell type, data in the supplementary materials. So we don't have to do that ourselves. The data for villous and decidual cell types are in two separate sheets in the excel file `aau4788_Data_file_S1.xlsx`. We just have to read the two sheets, combine them, and add `surya` prefix to all samples, so that we can differentiate them from `vento` and `pvali` samples when we analyse them all together. 
+
+### Data
+```{r}
+### read data
+surya.dec <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S1.xlsx", sheet = "Decidua_averages_TPM10K", col_names = TRUE, range = "A1:N16968", trim_ws = TRUE)
+surya.vil <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S1.xlsx", sheet = "Villi_averages_TPM10K", col_names = TRUE, range = "A1:J17107", trim_ws = TRUE)
+
+### prefixes
+names(surya.dec)[names(surya.dec) != "Gene"] <- paste0("surya_dec.", 
+                                                       names(surya.dec)[names(surya.dec) != "Gene"])
+names(surya.vil)[names(surya.vil) != "Gene"] <- paste0("surya_vil.",
+                                                       names(surya.vil)[names(surya.vil) != "Gene"])
+
+### merge
+surya.tp10k <- dplyr::inner_join(surya.dec, surya.vil, by = "Gene")
+```
+
+```{r}
+### fix gene names
+# change column name
+names(surya.tp10k)[names(surya.tp10k) == "Gene"] <- "gene_name"
+
+# duplicates
+table(surya.tp10k$gene_name) %>% as.data.frame() %>% filter(Freq > 1)
+```
+No need to remove duplicated gene names since there are none.
+
+```{r}
+surya.tp10k %>% head()
+```
+
+There are 22 cell types:
+```{r}
+names(surya.tp10k)[-1] %>% cat(sep = ", ")
+```
+
+```{r}
+write.csv(surya.tp10k, "../results/01_reference-atlas/surya_tp10k-by-celltype.csv", row.names = FALSE)
+```
+
+## Pavlicev et al
+The raw data are available on NCBI GEO, but I have transcriptomes averaged by cell type since I was involved in this study. We will just use those. 
+
+### Data
+This file was written on a different operating system, so the end of line characters are strange. When you try to read it with `read.table` with `col.names = TRUE` you get `more columns than column names` error. But it works fine if you don't set `col.names = TRUE`. But then the auto-generated column names get added and the actual colnames become the first row. You have to fix that manually as below. 
+
+```{r}
+### read data
+pavli.tpm <- read.table("../info/from-papers/pavlicev_2017/data/SC-ESC-SYN.txt", sep = "\t")
+
+### column names
+# fix the colnames = TRUE issue 
+names(pavli.tpm) <- pavli.tpm[1, ]
+pavli.tpm <- pavli.tpm[-1, ]
+pavli.tpm[, 2:9] <- lapply(pavli.tpm[, 2:9], as.numeric)
+
+# rename gene names column
+names(pavli.tpm)[names(pavli.tpm) == "geneID"] <- "gene_name"
+
+# prefixes
+names(pavli.tpm)[names(pavli.tpm) != "gene_name"] <- paste0("pavli_", names(pavli.tpm)[names(pavli.tpm) != "gene_name"])
+```
+
+```{r}
+### duplicated gene names
+table(pavli.tpm$gene_name) %>% as.data.frame() %>% filter(Freq > 1)
+```
+There are no duplicated rows. 
+
+There are 8 cell types here:
+```{r}
+names(pavli.tpm)[names(pavli.tpm) != "gene_name"]  %>% cat(sep = ", ")
+```
+
+```{r}
+# write
+write.csv(pavli.tpm, "../results/01_reference-atlas/pavli_tpm-by-celltype.csv", row.names = FALSE)
+```
+
+# Merge datasets
+
+# Compare datasets
 
 # Session Info
 ```{r}
