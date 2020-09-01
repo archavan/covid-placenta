@@ -220,8 +220,52 @@ write.csv(pavli.tpm, "../results/01_reference-atlas/pavli_tpm-by-celltype.csv", 
 ```
 
 # Merge datasets
+These three datasets are from different sources, were generated using different technologies, and were processed using different methods. There are certainly batch effects and it's not appropriate the expression values directly amongst them. But, we might be able to calculate correlations between celltypes in all three datasets as long as we use non-parametric correlation. For that we have `inner_join` these datasets to the intersection of genes shared in them. 
+
+```{r}
+# join
+vsp <- vento.cpm %>% 
+  inner_join(surya.tp10k, by = "gene_name") %>% 
+  inner_join(pavli.tpm, by = "gene_name")
+
+# write
+write.csv(vsp, "../results/01_reference-atlas/vento-surya-pavli_joined.csv", row.names = FALSE)
+```
 
 # Compare datasets
+We can measure spearman correlations between all pair of cell types from all three datasets. This would be useful for two reasons: (1) sanity check to make sure that corresponding cell types between datasets have the highest similarity, (2) if this works, it is likely that comparison of these datasets with our data would give us meaningful cell type annotations. 
+
+```{r}
+# plotting function. dat = melted correlation matrix
+cor_matrix_plot <- function(dat){
+  ggplot(data = dat, aes(Var2, Var1, fill=value)) +
+    geom_tile(colour="white") +
+    # geom_text(aes(Var2, Var1, label = round(value, 2)), 
+    #           color = "black", size = 2.5) +
+    scale_fill_gradient(low = 'white', high = 'red',
+                        limits =c((min(dat$value) - min(dat$value)*0.1), 1),
+                        name="Spearman\nCorrelation") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle=90, vjust=1, size=8, 
+                                     hjust=1, color='black'),
+          axis.text.y = element_text(size=8, color='black'),
+          axis.title = element_blank(),
+          panel.grid = element_blank(),
+          aspect.ratio = 1:1)
+} 
+```
+
+```{r}
+# cor matrix: all genes
+data.cols <- c(2:63)
+cor.matrix <- cor(sqrt(vsp[, data.cols]), method = "spearman")
+cor.matrix.melted <- reshape2::melt(cor.matrix, na.rm = T)
+cor_matrix_plot(cor.matrix.melted)
+# ggsave(last_plot(), 
+#        filename = 'analysis/all-genes/correlations/cormatrix_sqrt-tpm.pdf',
+#        device = cairo_pdf, width = 8, height = 7, units = 'in')
+```
+
 
 # Session Info
 ```{r}
