@@ -2912,7 +2912,7 @@ div.tocify {
 
 <!-- rnb-text-begin -->
 <p>Started: 2020-08-31<br />
-Last edited: 2020-08-31 21:19:01</p>
+Last edited: 2020-08-31 23:15:28</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIHBhY2thZ2VzXG5saWJyYXJ5KHRpZHl2ZXJzZSlcbmxpYnJhcnkoc2NhdGVyKVxuYGBgIn0= -->
@@ -2940,6 +2940,8 @@ library(scater)</code></pre>
 <h2 number="2.1"><span class="header-section-number">2.1</span> Vento-Tormo et al</h2>
 <p>The raw feature by barcode counts matrix from the 10x runs (<code>raw_data_10x.txt</code>) were downloaded from ArrayExpress accession <a href="https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6701/files/">E-MTAB-6701</a>. The associated metadata file <code>meta_10x.txt</code> contains cell metadata including cluster ids and cell type annotations.</p>
 <p>We want to (1) read these data, (2) sum counts for all cell with the same cell type annotation, and (3) normalize counts to counts per million (cpm). This gives us bulk-representation of the transcriptomes for all annotated cell types.</p>
+<div id="data" class="section level3" number="2.1.1">
+<h3 number="2.1.1"><span class="header-section-number">2.1.1</span> Data</h3>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIHJlYWQgZGF0YVxudmVudG8ubWV0YSA8LSByZWFkLnRhYmxlKFwiLi4vaW5mby9mcm9tLXBhcGVycy92ZW50by10b3Jtb18yMDE4LzEweF9hcnJheWV4cHJlc3MvbWV0YV8xMHgudHh0XCIsIGhlYWRlciA9IFRSVUUsIHNlcCA9IFwiXFx0XCIpXG52ZW50by5yYXcgPC0gcmVhZFNwYXJzZUNvdW50cyhcIi4uL2luZm8vZnJvbS1wYXBlcnMvdmVudG8tdG9ybW9fMjAxOC8xMHhfYXJyYXlleHByZXNzL3Jhd19kYXRhXzEweC50eHRcIiwgc2VwID0gXCJcXHRcIiwgcm93Lm5hbWVzID0gVFJVRSwgY29sLm5hbWVzID0gVFJVRSkgICMgaGF2ZSB0byB1c2UgcmVhZFNwYXJzZUNvdW50cyBiZWNhdXNlIHRoZSBmaWxlIGlzIHRvbyBiaWcuIFxuYGBgIn0= -->
@@ -2949,6 +2951,7 @@ vento.raw &lt;- readSparseCounts(&quot;../info/from-papers/vento-tormo_2018/10x_
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>The counts matrix is for 64734 cells.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGltKHZlbnRvLnJhdylcbmBgYCJ9 -->
@@ -2970,10 +2973,15 @@ C1orf112_ENSG00000000460                           .                           .
 FGR_ENSG00000000938                                .                           .
 CFH_ENSG00000000971                                2                           .</code></pre>
 <!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>The metadata looks like this:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaGVhZCh2ZW50by5tZXRhLCAxMCkgICMgY2VsbCBtZXRhZGF0YVxuYGBgIn0= -->
 <pre class="r"><code>head(vento.meta, 10)  # cell metadata</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbImRhdGEuZnJhbWUiXSwibnJvdyI6MTAsIm5jb2wiOjR9LCJyZGYiOiJINHNJQUFBQUFBQUFBODFUM1V2RE1CRFB1dGE1anFtd1IvK0dGYnJCcG84aFkza1FmSkFJZXh1eHpiUVkwOUVQOUsrZlhyb0V1dExPSjBIb3RmZnh5LzN1Y3RlbjFXYnViM3lFVUIrNXlFRjlEMVRrUGJQMTlBNGgxd0dqQjRHaC9uNEJhQUtLQzNJRDRwdUFzMXI4b1hiS05WaUpLSWxML2w5TWhNWlZkVkNydmplUVMyTmJmVlNMalJyZHVQSGp3NnltaDBhL1lKR1FNbSsxdW5FNk12OGw4eEZ6T2xoUDhRK1JtOUpjNjF5TG9yU1pMMlVhOFNKSmxiSEh1MFJ4dVkxa21SY2lNMDZmSzVVV1I5Z3B3VEJMUDRNNmllMy9kazN3TWx3c1orSDlGbU5NS0tXWUVvWXBZNlFiUWpCajhLWm5JQXlpRk1PN0hRSWhUWVF4QStVY2hGV0pPb2cwQkdyUlpKaDFReUFPaU02T0lBZkVRWFN5VmdnaEZaRitHR3NuSWxXWjBBNWNJTVBOK1VhUzUvYnFyZE9QZWNHRFhRWlRBZXZRT0RKSTkzcU9jTWlabU4ydEgrNWxEY2QxcWZSODQybjBWcXIzYVdqK2daNlJzZm42TmQwOVVqcmZKcFZuZDFxbzEwUUpXN3ZrTDBJYTR3cjJxRnFqWUo4bHFyQ2RnRGNQQ2xnOWkvT2pWRnBQMVJzNi9BREVsYkVENkFRQUFBPT0ifQ== -->
+<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbImRhdGEuZnJhbWUiXSwibnJvdyI6MTAsIm5jb2wiOjR9LCJyZGYiOiJINHNJQUFBQUFBQUFBODFUM1d2Q01CQ1B0WjFhY1J2NHVML0JnZ3E2UFlhSWVSRDJNREx3VGJJMmJtVlpLdjFnKyt2ZExqV0JXbHIzTkJqMDJ2djQ1WDUzdWV2VGFqdjN0ejVDcUl0YzVLQ3VCeXJ5bnRsNmNvK1E2NERSZ2NCQWY3OEFOQWJGQmJrRjhVM0FXUzMrVUR2bjZxMUVHRWNGL3k4bVFxT3lPcWhWM3h0STM5aFdIMVppdzFvM2J2UzRtVlgwcWRHdldDaWt6QnF0ZHB5T3pIL0pmTUtjRDlaVC9FTmtwalRYT3RjaUwyem12a3hDbnNlSk12Wm9IeXN1ZDZFc3NseWt4dWx6cFpMOEJEc25HS1RKWjFBbHNmM2ZyUWxlVGhmTDJmUmhoekVtbEZKTUNjT1VNZElPSVpneGVOTUxFQVpSaXVIZERJR1FKc0tZZ1hJSndzcEVMVVFhQXJWb01zemFJUkFIUkd0SGtBUGlJRHBaSTRTUWtrZy9qRFVUa2JKTWFBY3VrT0g2ZkVQSk0zdjExdWxIUE9mQlBvV3BnSFdzSGVrbEJ6MUhPT1NNemU1V0QzZlNtdU9tVUhxKzBTUjhLOVQ3Wkc3K2dZNlJrZm42RmQwOVVUcmZKcFZuZDFxbzExZ0pXN3ZrTDBJYTR4cjJxRnlqNEpER0tyZWRnRGNMY2xnOWkvUERSRnBQMlJzNi9nQ0EwUTNGNkFRQUFBPT0ifQ== -->
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Fetus"],"name":[1],"type":["chr"],"align":["left"]},{"label":["location"],"name":[2],"type":["chr"],"align":["left"]},{"label":["final_cluster"],"name":[3],"type":["int"],"align":["right"]},{"label":["annotation"],"name":[4],"type":["chr"],"align":["left"]}],"data":[{"1":"D6","2":"Decidua","3":"2","4":"dNK2","_rn_":"FCA7167219_AAACGGGAGCTAGTTC"},{"1":"D6","2":"Decidua","3":"5","4":"dNK1","_rn_":"FCA7167219_AAACGGGCATTGGCGC"},{"1":"D6","2":"Decidua","3":"8","4":"Tcells","_rn_":"FCA7167219_AAACGGGTCGCGATCG"},{"1":"D6","2":"Decidua","3":"10","4":"Tcells","_rn_":"FCA7167219_AAAGATGAGCAATATG"},{"1":"D6","2":"Decidua","3":"5","4":"dNK1","_rn_":"FCA7167219_AAAGATGAGTTCGCGC"},{"1":"D6","2":"Decidua","3":"8","4":"Tcells","_rn_":"FCA7167219_AAAGATGCATGTCGAT"},{"1":"D6","2":"Decidua","3":"11","4":"dNK3","_rn_":"FCA7167219_AAAGATGGTCTCGTTC"},{"1":"D6","2":"Decidua","3":"2","4":"dNK2","_rn_":"FCA7167219_AAATGCCTCCCTTGCA"},{"1":"D6","2":"Decidua","3":"5","4":"dNK1","_rn_":"FCA7167219_AACCATGCAGCAGTTT"},{"1":"D6","2":"Decidua","3":"11","4":"dNK3","_rn_":"FCA7167219_AACCGCGCATAGGATA"}],"options":{"columns":{"min":{},"max":[10],"total":[4]},"rows":{"min":[10],"max":[10],"total":[10]},"pages":{}}}
@@ -2982,16 +2990,120 @@ CFH_ENSG00000000971                                2                           .
 <!-- rnb-frame-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>This contains data for 31764 genes and 64734 cells.</p>
+<p>According to the metadata file, there are 38 clusters.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIGNyZWF0ZSBTaW5nbGVDZWxsRXhwZXJpbWVudCBvYmplY3RcbnZlbnRvLnNjZSA8LSBTaW5nbGVDZWxsRXhwZXJpbWVudChhc3NheXMgPSBsaXN0KGNvdW50cyA9IHZlbnRvLnJhdykpXG5cblxuXG5gYGAifQ== -->
-<pre class="r"><code>### create SingleCellExperiment object
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudmVudG8ubWV0YSRmaW5hbF9jbHVzdGVyICU+JSB1bmlxdWUoKSAlPiUgc29ydCgpICMgZmluYWwgY2x1c3RlcnNcbmBgYCJ9 -->
+<pre class="r"><code>vento.meta$final_cluster %&gt;% unique() %&gt;% sort() # final clusters</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSAgMCAgMSAgMiAgMyAgNCAgNSAgNiAgNyAgOCAgOSAxMCAxMSAxMiAxMyAxNSAxNiAxNyAxOCAyMCAyMSAyMiAyMyAyNCAyNiAyNyAyOCAyOSAzMCAzMSAzMiAzMyA0MSA0MiA0MyA0NCA0NSA0OVxuWzM4XSA1MFxuIn0= -->
+<pre><code> [1]  0  1  2  3  4  5  6  7  8  9 10 11 12 13 15 16 17 18 20 21 22 23 24 26 27 28 29 30 31 32 33 41 42 43 44 45 49
+[38] 50</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>These clusters are associated with the following 31 cell types annotations.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudmVudG8ubWV0YSRhbm5vdGF0aW9uICU+JSB1bmlxdWUoKSAlPiUgc29ydCgpICU+JSBjYXQoc2VwID0gXCIsIFwiKSAjIGFubm90YXRpb25zXG5gYGAifQ== -->
+<pre class="r"><code>vento.meta$annotation %&gt;% unique() %&gt;% sort() %&gt;% cat(sep = &quot;, &quot;) # annotations</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiREMxLCBEQzIsIGRNMSwgZE0yLCBkTTMsIGROSyBwLCBkTksxLCBkTksyLCBkTkszLCBkUDEsIGRQMiwgZFMxLCBkUzIsIGRTMywgRW5kbyAoZiksIEVuZG8gKG0pLCBFbmRvIEwsIEVwaTEsIEVwaTIsIEVWVCwgZkZCMSwgZkZCMiwgR3JhbnVsb2N5dGVzLCBIQiwgSUxDMywgTU8sIE5LIENEMTYtLCBOSyBDRDE2KywgUGxhc21hLCBTQ1QsIFRjZWxscywgVkNUXG4ifQ== -->
+<pre><code>DC1, DC2, dM1, dM2, dM3, dNK p, dNK1, dNK2, dNK3, dP1, dP2, dS1, dS2, dS3, Endo (f), Endo (m), Endo L, Epi1, Epi2, EVT, fFB1, fFB2, Granulocytes, HB, ILC3, MO, NK CD16-, NK CD16+, Plasma, SCT, Tcells, VCT</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="convert-into-a-singlecellexperiment-object" class="section level3" number="2.1.2">
+<h3 number="2.1.2"><span class="header-section-number">2.1.2</span> Convert into a <code>SingleCellExperiment</code> object</h3>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIGNyZWF0ZSBTaW5nbGVDZWxsRXhwZXJpbWVudCBvYmplY3QgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxudmVudG8uc2NlIDwtIFNpbmdsZUNlbGxFeHBlcmltZW50KGFzc2F5cyA9IGxpc3QoY291bnRzID0gdmVudG8ucmF3KSlcblxuIyMjIGFkZCBjb2xEYXRhIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuY29sRGF0YSh2ZW50by5zY2UpJGxvY2F0aW9uIDwtIHZlbnRvLm1ldGEkbG9jYXRpb25bbWF0Y2gocm93bmFtZXMoY29sRGF0YSh2ZW50by5zY2UpKSwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0YWJsZSA9IHJvd25hbWVzKHZlbnRvLm1ldGEpXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICApXSAjIGFuYXRvbWljYWwgbG9jYXRpb25cbmNvbERhdGEodmVudG8uc2NlKSRjZWxsdHlwZSA8LSB2ZW50by5tZXRhJGFubm90YXRpb25bbWF0Y2gocm93bmFtZXMoY29sRGF0YSh2ZW50by5zY2UpKSxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGFibGUgPSByb3duYW1lcyh2ZW50by5tZXRhKVxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICApXSAjIGNlbGwgdHlwZSBhbm5vdGF0aW9uc1xuXG4jIyMgcm93RGF0YSAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4jIGV4dHJhY3QgZW5zZW1ibCBpZCBmcm9tIHJvd25hbWVzXG5yb3dEYXRhKHZlbnRvLnNjZSkkSUQgPC0gZ3N1YihwYXR0ZXJuICA9IFwiKC4rKShfKShFTlNHXFxcXGQrKVwiLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJlcGxhY2VtZW50ID0gXCJcXFxcM1wiLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJvd25hbWVzKHJvd0RhdGEodmVudG8uc2NlKSkpXG5cbiMgZXh0cmFjdCBnZW5lIHN5bWJvbCBmcm9tIGdlbmUgbmFtZXNcbnJvd0RhdGEodmVudG8uc2NlKSRTeW1ib2wgPC0gZ3N1YihwYXR0ZXJuID0gXCJfRU5TR1xcXFxkK1wiLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICByZXBsYWNlbWVudCA9IFwiXCIsIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJvd25hbWVzKHJvd0RhdGEodmVudG8uc2NlKSkpXG5gYGAifQ== -->
+<pre class="r"><code>### create SingleCellExperiment object ----------------------------------------
 vento.sce &lt;- SingleCellExperiment(assays = list(counts = vento.raw))
-</code></pre>
+
+### add colData ---------------------------------------------------------------
+colData(vento.sce)$location &lt;- vento.meta$location[match(rownames(colData(vento.sce)), 
+                                                         table = rownames(vento.meta)
+                                                         )] # anatomical location
+colData(vento.sce)$celltype &lt;- vento.meta$annotation[match(rownames(colData(vento.sce)),
+                                                           table = rownames(vento.meta)
+                                                           )] # cell type annotations
+
+### rowData -------------------------------------------------------------------
+# extract ensembl id from rownames
+rowData(vento.sce)$ID &lt;- gsub(pattern  = &quot;(.+)(_)(ENSG\\d+)&quot;, 
+                              replacement = &quot;\\3&quot;, 
+                              rownames(rowData(vento.sce)))
+
+# extract gene symbol from gene names
+rowData(vento.sce)$Symbol &lt;- gsub(pattern = &quot;_ENSG\\d+&quot;, 
+                                  replacement = &quot;&quot;, 
+                                  rownames(rowData(vento.sce)))</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+</div>
+<div id="aggregate-data-by-cell-type-annotation" class="section level3" number="2.1.3">
+<h3 number="2.1.3"><span class="header-section-number">2.1.3</span> Aggregate data by cell type annotation</h3>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBzdW0gY291bnRzIGFjcm9zcyBiYXJjb2RlcyBieSBjZWxsIHR5cGUgYW5ub3RhdGlvblxudmVudG8uc3VtIDwtIGFnZ3JlZ2F0ZUFjcm9zc0NlbGxzKHZlbnRvLnNjZSwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWRzID0gdmVudG8uc2NlJGNlbGx0eXBlLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhdmVyYWdlID0gRkFMU0UsIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHVzZV9leHByc192YWx1ZXMgPSBcImNvdW50c1wiKVxuXG4jIHN1bW1lZCBsaWJyYXJ5IHNpemVzXG5jb2xTdW1zKHZlbnRvLnN1bUBhc3NheXNAZGF0YUBsaXN0RGF0YSRjb3VudHMpXG5gYGAifQ== -->
+<pre class="r"><code># sum counts across barcodes by cell type annotation
+vento.sum &lt;- aggregateAcrossCells(vento.sce, 
+                                  ids = vento.sce$celltype, 
+                                  average = FALSE, 
+                                  use_exprs_values = &quot;counts&quot;)
+
+# summed library sizes
+colSums(vento.sum@assays@data@listData$counts)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgREMxICAgICAgICAgIERDMiAgICAgICAgICBkTTEgICAgICAgICAgZE0yICAgICAgICAgIGRNMyAgICAgICAgZE5LIHAgICAgICAgICBkTksxICAgICAgICAgZE5LMiBcbiAgICAgMzIyNTgxNyAgICAgIDM4MjA4NTEgICAgIDE0NjM3NjI5ICAgICAxMDQxOTE4NCAgICAgMTUxNTA5MTkgICAgICA3MzY2MjM5ICAgICAxOTA0MjA5MCAgICAgMjM1NzkxMzYgXG4gICAgICAgIGROSzMgICAgICAgICAgZFAxICAgICAgICAgIGRQMiAgICAgICAgICBkUzEgICAgICAgICAgZFMyICAgICAgICAgIGRTMyAgICAgRW5kbyAoZikgICAgIEVuZG8gKG0pIFxuICAgICA3ODcxMzg1ICAgICAgODEyMTYwNyAgICAgIDU3MTU5NjggICAgMTAzMjI4NzYyICAgICA1ODY2MjY2NiAgICAgIDc3NTg1MDggICAgICAxMDA1ODU0ICAgICAgNjgwNjM2NSBcbiAgICAgIEVuZG8gTCAgICAgICAgIEVwaTEgICAgICAgICBFcGkyICAgICAgICAgIEVWVCAgICAgICAgIGZGQjEgICAgICAgICBmRkIyIEdyYW51bG9jeXRlcyAgICAgICAgICAgSEIgXG4gICAgIDI2MjY5OTYgICAgICAxMjc3MTI2ICAgICAgMTY5NjAzOCAgICAxMjEzNzg0OTcgICAgIDIwODYzMDI5ICAgICAgMTI5MTQ1NSAgICAgIDI5MDcxMzkgICAgIDE4OTM1NjMzIFxuICAgICAgICBJTEMzICAgICAgICAgICBNTyAgICAgTksgQ0QxNi0gICAgIE5LIENEMTYrICAgICAgIFBsYXNtYSAgICAgICAgICBTQ1QgICAgICAgVGNlbGxzICAgICAgICAgIFZDVCBcbiAgICAgIDgwNzMyMSAgICAgIDQ0NjY5NTAgICAgICAgOTEzNDcxICAgICAgNDIxNjg5MiAgICAgIDIxNzkyNzEgICAgIDE3ODMzNTYwICAgICAzNzMwNzYzMCAgICAxNTk3MTI3MTggXG4ifQ== -->
+<pre><code>         DC1          DC2          dM1          dM2          dM3        dNK p         dNK1         dNK2 
+     3225817      3820851     14637629     10419184     15150919      7366239     19042090     23579136 
+        dNK3          dP1          dP2          dS1          dS2          dS3     Endo (f)     Endo (m) 
+     7871385      8121607      5715968    103228762     58662666      7758508      1005854      6806365 
+      Endo L         Epi1         Epi2          EVT         fFB1         fFB2 Granulocytes           HB 
+     2626996      1277126      1696038    121378497     20863029      1291455      2907139     18935633 
+        ILC3           MO     NK CD16-     NK CD16+       Plasma          SCT       Tcells          VCT 
+      807321      4466950       913471      4216892      2179271     17833560     37307630    159712718 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBjYWxjdWxhdGUgY3BtXG5hc3NheSh2ZW50by5zdW0sIFwiY3BtXCIpIDwtIGNhbGN1bGF0ZUNQTShhc3NheSh2ZW50by5zdW0sIFwiY291bnRzXCIpKVxuXG4jIHdyaXRlIGNwbSB0byBkYXRhLmZyYW1lXG52ZW50by5jcG0gPC0gYXNzYXkodmVudG8uc3VtLCBcImNwbVwiKSAlPiUgYXMuZGF0YS5mcmFtZSgpXG5cbiMgY2hhbmdlIGNvbHVtbiBuYW1lcyB0byBsZWdhbCBjaGFyYWN0ZXJzIGFuZCBhZGQgYHZlbnRvYCBzdWZmaXhcbm5hbWVzKHZlbnRvLmNwbSlbbmFtZXModmVudG8uY3BtKSA9PSBcImROSyBwXCJdIDwtIFwiZE5LLnBcIlxubmFtZXModmVudG8uY3BtKVtuYW1lcyh2ZW50by5jcG0pID09IFwiRW5kbyAoZilcIl0gPC0gXCJFbmRvLmZcIlxubmFtZXModmVudG8uY3BtKVtuYW1lcyh2ZW50by5jcG0pID09IFwiRW5kbyAobSlcIl0gPC0gXCJFbmRvLm1cIlxubmFtZXModmVudG8uY3BtKVtuYW1lcyh2ZW50by5jcG0pID09IFwiRW5kbyBMXCJdIDwtIFwiRW5kby5MXCJcbm5hbWVzKHZlbnRvLmNwbSlbbmFtZXModmVudG8uY3BtKSA9PSBcIk5LIENEMTYtXCJdIDwtIFwiTksuQ0QxNm5lZ1wiXG5uYW1lcyh2ZW50by5jcG0pW25hbWVzKHZlbnRvLmNwbSkgPT0gXCJOSyBDRDE2K1wiXSA8LSBcIk5LLkNEMTZwb3NcIlxuXG5uYW1lcyh2ZW50by5jcG0pIDwtIHBhc3RlMChcInZlbnRvX1wiLCBuYW1lcyh2ZW50by5jcG0pKVxuXG4jIGFkZCBnZW5lIG5hbWVzIGNvbHVtblxudmVudG8uY3BtJGdlbmVfbmFtZSA8LSBnc3ViKFwiX0VOU0dcXFxcZCtcIiwgXCJcIiwgcm93bmFtZXModmVudG8uY3BtKSlcbnZlbnRvLmNwbSA8LSB2ZW50by5jcG0gJT4lIHJlbG9jYXRlKGdlbmVfbmFtZSkgIyBtYWtlIGl0IHRoZSBmaXJzdCBjb2x1bW5cblxuIyByZW1vdmUgcm93cyB0aGF0IGhhdmUgZHVwbGljYXRlZCBnZW5lIG5hbWVzXG5kdXBnZW5lcyA8LSB0YWJsZSh2ZW50by5jcG0kZ2VuZV9uYW1lKSAlPiUgYXMuZGF0YS5mcmFtZSgpICU+JSBmaWx0ZXIoRnJlcSA+IDEpXG52ZW50by5jcG0gPC0gdmVudG8uY3BtWyEodmVudG8uY3BtJGdlbmVfbmFtZSAlaW4lIGR1cGdlbmVzJFZhcjEpLCBdXG5yb3duYW1lcyh2ZW50by5jcG0pIDwtIE5VTExcblxuIyB3cml0ZVxud3JpdGUuY3N2KHZlbnRvLmNwbSwgZmlsZSA9IFwiLi4vcmVzdWx0cy8wMV9yZWZlcmVuY2UtYXRsYXMvdmVudG8tdG9ybW9fY3BtLWJ5LWNlbGx0eXBlLmNzdlwiLCByb3cubmFtZXMgPSBGQUxTRSlcbmBgYCJ9 -->
+<pre class="r"><code># calculate cpm
+assay(vento.sum, &quot;cpm&quot;) &lt;- calculateCPM(assay(vento.sum, &quot;counts&quot;))
+
+# write cpm to data.frame
+vento.cpm &lt;- assay(vento.sum, &quot;cpm&quot;) %&gt;% as.data.frame()
+
+# change column names to legal characters and add `vento` suffix
+names(vento.cpm)[names(vento.cpm) == &quot;dNK p&quot;] &lt;- &quot;dNK.p&quot;
+names(vento.cpm)[names(vento.cpm) == &quot;Endo (f)&quot;] &lt;- &quot;Endo.f&quot;
+names(vento.cpm)[names(vento.cpm) == &quot;Endo (m)&quot;] &lt;- &quot;Endo.m&quot;
+names(vento.cpm)[names(vento.cpm) == &quot;Endo L&quot;] &lt;- &quot;Endo.L&quot;
+names(vento.cpm)[names(vento.cpm) == &quot;NK CD16-&quot;] &lt;- &quot;NK.CD16neg&quot;
+names(vento.cpm)[names(vento.cpm) == &quot;NK CD16+&quot;] &lt;- &quot;NK.CD16pos&quot;
+
+names(vento.cpm) &lt;- paste0(&quot;vento_&quot;, names(vento.cpm))
+
+# add gene names column
+vento.cpm$gene_name &lt;- gsub(&quot;_ENSG\\d+&quot;, &quot;&quot;, rownames(vento.cpm))
+vento.cpm &lt;- vento.cpm %&gt;% relocate(gene_name) # make it the first column
+
+# remove rows that have duplicated gene names
+dupgenes &lt;- table(vento.cpm$gene_name) %&gt;% as.data.frame() %&gt;% filter(Freq &gt; 1)
+vento.cpm &lt;- vento.cpm[!(vento.cpm$gene_name %in% dupgenes$Var1), ]
+rownames(vento.cpm) &lt;- NULL
+
+# write
+write.csv(vento.cpm, file = &quot;../results/01_reference-atlas/vento-tormo_cpm-by-celltype.csv&quot;, row.names = FALSE)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
 </div>
 </div>
 <div id="session-info" class="section level1" number="3">
@@ -3001,6 +3113,48 @@ vento.sce &lt;- SingleCellExperiment(assays = list(counts = vento.raw))
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2Vzc2lvbkluZm8oKVxuYGBgIn0= -->
 <pre class="r"><code>sessionInfo()</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUiB2ZXJzaW9uIDQuMC4yICgyMDIwLTA2LTIyKVxuUGxhdGZvcm06IHg4Nl82NC1hcHBsZS1kYXJ3aW4xNy4wICg2NC1iaXQpXG5SdW5uaW5nIHVuZGVyOiBtYWNPUyBNb2phdmUgMTAuMTQuNlxuXG5NYXRyaXggcHJvZHVjdHM6IGRlZmF1bHRcbkJMQVM6ICAgL1N5c3RlbS9MaWJyYXJ5L0ZyYW1ld29ya3MvQWNjZWxlcmF0ZS5mcmFtZXdvcmsvVmVyc2lvbnMvQS9GcmFtZXdvcmtzL3ZlY0xpYi5mcmFtZXdvcmsvVmVyc2lvbnMvQS9saWJCTEFTLmR5bGliXG5MQVBBQ0s6IC9MaWJyYXJ5L0ZyYW1ld29ya3MvUi5mcmFtZXdvcmsvVmVyc2lvbnMvNC4wL1Jlc291cmNlcy9saWIvbGliUmxhcGFjay5keWxpYlxuXG5sb2NhbGU6XG5bMV0gZW5fVVMuVVRGLTgvZW5fVVMuVVRGLTgvZW5fVVMuVVRGLTgvQy9lbl9VUy5VVEYtOC9lbl9VUy5VVEYtOFxuXG5hdHRhY2hlZCBiYXNlIHBhY2thZ2VzOlxuWzFdIHBhcmFsbGVsICBzdGF0czQgICAgc3RhdHMgICAgIGdyYXBoaWNzICBnckRldmljZXMgdXRpbHMgICAgIGRhdGFzZXRzICBtZXRob2RzICAgYmFzZSAgICAgXG5cbm90aGVyIGF0dGFjaGVkIHBhY2thZ2VzOlxuIFsxXSBzY2F0ZXJfMS4xNi4yICAgICAgICAgICAgICAgU2luZ2xlQ2VsbEV4cGVyaW1lbnRfMS4xMC4xIFN1bW1hcml6ZWRFeHBlcmltZW50XzEuMTguMiBEZWxheWVkQXJyYXlfMC4xNC4xICAgICAgICBcbiBbNV0gbWF0cml4U3RhdHNfMC41Ni4wICAgICAgICAgIEJpb2Jhc2VfMi40OC4wICAgICAgICAgICAgICBHZW5vbWljUmFuZ2VzXzEuNDAuMCAgICAgICAgR2Vub21lSW5mb0RiXzEuMjQuMiAgICAgICAgXG4gWzldIElSYW5nZXNfMi4yMi4yICAgICAgICAgICAgICBTNFZlY3RvcnNfMC4yNi4xICAgICAgICAgICAgQmlvY0dlbmVyaWNzXzAuMzQuMCAgICAgICAgIGZvcmNhdHNfMC41LjAgICAgICAgICAgICAgIFxuWzEzXSBzdHJpbmdyXzEuNC4wICAgICAgICAgICAgICAgZHBseXJfMS4wLjIgICAgICAgICAgICAgICAgIHB1cnJyXzAuMy40ICAgICAgICAgICAgICAgICByZWFkcl8xLjMuMSAgICAgICAgICAgICAgICBcblsxN10gdGlkeXJfMS4xLjIgICAgICAgICAgICAgICAgIHRpYmJsZV8zLjAuMyAgICAgICAgICAgICAgICBnZ3Bsb3QyXzMuMy4yICAgICAgICAgICAgICAgdGlkeXZlcnNlXzEuMy4wICAgICAgICAgICAgXG5cbmxvYWRlZCB2aWEgYSBuYW1lc3BhY2UgKGFuZCBub3QgYXR0YWNoZWQpOlxuIFsxXSBiaXRvcHNfMS4wLTYgICAgICAgICAgICAgIGZzXzEuNS4wICAgICAgICAgICAgICAgICAgbHVicmlkYXRlXzEuNy45ICAgICAgICAgICBodHRyXzEuNC4yICAgICAgICAgICAgICAgXG4gWzVdIHRvb2xzXzQuMC4yICAgICAgICAgICAgICAgYmFja3BvcnRzXzEuMS45ICAgICAgICAgICBSNl8yLjQuMSAgICAgICAgICAgICAgICAgIGlybGJhXzIuMy4zICAgICAgICAgICAgICBcbiBbOV0gdmlwb3JfMC40LjUgICAgICAgICAgICAgICBEQklfMS4xLjAgICAgICAgICAgICAgICAgIGNvbG9yc3BhY2VfMS40LTEgICAgICAgICAgd2l0aHJfMi4yLjAgICAgICAgICAgICAgIFxuWzEzXSB0aWR5c2VsZWN0XzEuMS4wICAgICAgICAgIGdyaWRFeHRyYV8yLjMgICAgICAgICAgICAgY29tcGlsZXJfNC4wLjIgICAgICAgICAgICBjbGlfMi4wLjIgICAgICAgICAgICAgICAgXG5bMTddIHJ2ZXN0XzAuMy42ICAgICAgICAgICAgICAgQmlvY05laWdoYm9yc18xLjYuMCAgICAgICB4bWwyXzEuMy4yICAgICAgICAgICAgICAgIHNjYWxlc18xLjEuMSAgICAgICAgICAgICBcblsyMV0gZGlnZXN0XzAuNi4yNSAgICAgICAgICAgICBybWFya2Rvd25fMi4zICAgICAgICAgICAgIFhWZWN0b3JfMC4yOC4wICAgICAgICAgICAgYmFzZTY0ZW5jXzAuMS0zICAgICAgICAgIFxuWzI1XSBwa2djb25maWdfMi4wLjMgICAgICAgICAgIGh0bWx0b29sc18wLjUuMCAgICAgICAgICAgZGJwbHlyXzEuNC40ICAgICAgICAgICAgICBoaWdocl8wLjggICAgICAgICAgICAgICAgXG5bMjldIHJsYW5nXzAuNC43ICAgICAgICAgICAgICAgcmVhZHhsXzEuMy4xICAgICAgICAgICAgICByc3R1ZGlvYXBpXzAuMTEgICAgICAgICAgIERlbGF5ZWRNYXRyaXhTdGF0c18xLjEwLjFcblszM10gZ2VuZXJpY3NfMC4wLjIgICAgICAgICAgICBqc29ubGl0ZV8xLjcuMCAgICAgICAgICAgIEJpb2NQYXJhbGxlbF8xLjIyLjAgICAgICAgUkN1cmxfMS45OC0xLjIgICAgICAgICAgIFxuWzM3XSBtYWdyaXR0cl8xLjUgICAgICAgICAgICAgIEJpb2NTaW5ndWxhcl8xLjQuMCAgICAgICAgR2Vub21lSW5mb0RiRGF0YV8xLjIuMyAgICBNYXRyaXhfMS4yLTE4ICAgICAgICAgICAgXG5bNDFdIFJjcHBfMS4wLjUgICAgICAgICAgICAgICAgZ2diZWVzd2FybV8wLjYuMCAgICAgICAgICBtdW5zZWxsXzAuNS4wICAgICAgICAgICAgIGZhbnNpXzAuNC4xICAgICAgICAgICAgICBcbls0NV0gdmlyaWRpc18wLjUuMSAgICAgICAgICAgICBsaWZlY3ljbGVfMC4yLjAgICAgICAgICAgIHN0cmluZ2lfMS40LjYgICAgICAgICAgICAgeWFtbF8yLjIuMSAgICAgICAgICAgICAgIFxuWzQ5XSB6bGliYmlvY18xLjM0LjAgICAgICAgICAgIGdyaWRfNC4wLjIgICAgICAgICAgICAgICAgYmxvYl8xLjIuMSAgICAgICAgICAgICAgICBjcmF5b25fMS4zLjQgICAgICAgICAgICAgXG5bNTNdIGxhdHRpY2VfMC4yMC00MSAgICAgICAgICAgaGF2ZW5fMi4zLjEgICAgICAgICAgICAgICBwYW5kZXJfMC42LjMgICAgICAgICAgICAgIGhtc18wLjUuMyAgICAgICAgICAgICAgICBcbls1N10ga25pdHJfMS4yOSAgICAgICAgICAgICAgICBwaWxsYXJfMS40LjYgICAgICAgICAgICAgIHJlcHJleF8wLjMuMCAgICAgICAgICAgICAgZ2x1ZV8xLjQuMiAgICAgICAgICAgICAgIFxuWzYxXSBldmFsdWF0ZV8wLjE0ICAgICAgICAgICAgIG1vZGVscl8wLjEuOCAgICAgICAgICAgICAgdmN0cnNfMC4zLjMgICAgICAgICAgICAgICBjZWxscmFuZ2VyXzEuMS4wICAgICAgICAgXG5bNjVdIGd0YWJsZV8wLjMuMCAgICAgICAgICAgICAgYXNzZXJ0dGhhdF8wLjIuMSAgICAgICAgICB4ZnVuXzAuMTYgICAgICAgICAgICAgICAgIHJzdmRfMS4wLjMgICAgICAgICAgICAgICBcbls2OV0gYnJvb21fMC43LjAgICAgICAgICAgICAgICB2aXJpZGlzTGl0ZV8wLjMuMCAgICAgICAgIGJlZXN3YXJtXzAuMi4zICAgICAgICAgICAgZWxsaXBzaXNfMC4zLjEgICAgICAgICAgIFxuIn0= -->
+<pre><code>R version 4.0.2 (2020-06-22)
+Platform: x86_64-apple-darwin17.0 (64-bit)
+Running under: macOS Mojave 10.14.6
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] scater_1.16.2               SingleCellExperiment_1.10.1 SummarizedExperiment_1.18.2 DelayedArray_0.14.1        
+ [5] matrixStats_0.56.0          Biobase_2.48.0              GenomicRanges_1.40.0        GenomeInfoDb_1.24.2        
+ [9] IRanges_2.22.2              S4Vectors_0.26.1            BiocGenerics_0.34.0         forcats_0.5.0              
+[13] stringr_1.4.0               dplyr_1.0.2                 purrr_0.3.4                 readr_1.3.1                
+[17] tidyr_1.1.2                 tibble_3.0.3                ggplot2_3.3.2               tidyverse_1.3.0            
+
+loaded via a namespace (and not attached):
+ [1] bitops_1.0-6              fs_1.5.0                  lubridate_1.7.9           httr_1.4.2               
+ [5] tools_4.0.2               backports_1.1.9           R6_2.4.1                  irlba_2.3.3              
+ [9] vipor_0.4.5               DBI_1.1.0                 colorspace_1.4-1          withr_2.2.0              
+[13] tidyselect_1.1.0          gridExtra_2.3             compiler_4.0.2            cli_2.0.2                
+[17] rvest_0.3.6               BiocNeighbors_1.6.0       xml2_1.3.2                scales_1.1.1             
+[21] digest_0.6.25             rmarkdown_2.3             XVector_0.28.0            base64enc_0.1-3          
+[25] pkgconfig_2.0.3           htmltools_0.5.0           dbplyr_1.4.4              highr_0.8                
+[29] rlang_0.4.7               readxl_1.3.1              rstudioapi_0.11           DelayedMatrixStats_1.10.1
+[33] generics_0.0.2            jsonlite_1.7.0            BiocParallel_1.22.0       RCurl_1.98-1.2           
+[37] magrittr_1.5              BiocSingular_1.4.0        GenomeInfoDbData_1.2.3    Matrix_1.2-18            
+[41] Rcpp_1.0.5                ggbeeswarm_0.6.0          munsell_0.5.0             fansi_0.4.1              
+[45] viridis_0.5.1             lifecycle_0.2.0           stringi_1.4.6             yaml_2.2.1               
+[49] zlibbioc_1.34.0           grid_4.0.2                blob_1.2.1                crayon_1.3.4             
+[53] lattice_0.20-41           haven_2.3.1               pander_0.6.3              hms_0.5.3                
+[57] knitr_1.29                pillar_1.4.6              reprex_0.3.0              glue_1.4.2               
+[61] evaluate_0.14             modelr_0.1.8              vctrs_0.3.3               cellranger_1.1.0         
+[65] gtable_0.3.0              assertthat_0.2.1          xfun_0.16                 rsvd_1.0.3               
+[69] broom_0.7.0               viridisLite_0.3.0         beeswarm_0.2.3            ellipsis_0.3.1           </code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -3020,7 +3174,7 @@ vento.sce &lt;- SingleCellExperiment(assays = list(counts = vento.raw))
 </div>
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUmVmZXJlbmNlIGNlbGwgYXRsYXMgZm9yIGRlY2lkdWEgYW5kIHZpbGxpIgpzdWJ0aXRsZTogCmF1dGhvcjogIkFydW4gQ2hhdmFuIgpvdXRwdXQ6CiAgaHRtbF9ub3RlYm9vazoKICAgIHRvYzogeWVzCiAgICB0b2NfZmxvYXQ6IHllcwogICAgbnVtYmVyX3NlY3Rpb25zOiB0cnVlCmJpYmxpb2dyYXBoeTogLi4vcmVmcy5iaWIKLS0tClN0YXJ0ZWQ6IDIwMjAtMDgtMzEgIApMYXN0IGVkaXRlZDogYHIgZm9ybWF0KFN5cy50aW1lKCkpYAoKYGBge3IgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0KIyMjIHBhY2thZ2VzCmxpYnJhcnkodGlkeXZlcnNlKQpsaWJyYXJ5KHNjYXRlcikKYGBgCgojIEJhY2tncm91bmQKVGhlIGdvYWwgaGVyZSBpcyB0byBjcmVhdGUgYSByZWZlcmVuY2Ugc2V0IG9mIGNlbGx0eXBlLXNwZWNpZmljIHRyYW5zY3JpcHRvbWVzIGZvciBjZWxsIHR5cGVzIHByZXNlbnQgYXQgdGhlIGh1bWFuIGZldGFsLW1hdGVybmFsIGludGVyZmFjZS4gSWRlYWxseSB3ZSB3YW50IGJ1bGstcmVwcmVzZW50YXRpb25zIG9mIHRyYW5zY3JpcHRvbWVzIGZvciBhbGwgY2VsbCB0eXBlcy4gV2UgY2FuIGNvbXBhcmUgKGJ5IGNhbGN1bGF0aW5nIGNvcnJlbGF0aW9uIGNvZWZmaWNpZW50cywgZS5nLikgdGhlc2UgdG8gdGhlIGF2ZXJhZ2VkIHRyYW5jcmlwdG9tZXMgZm9yIGVhY2ggY2x1c3RlciBmcm9tIG91ciBkYXRhLiBUaGUgY2VsbCB0eXBlIHRvIHdoaWNoIGEgY2x1c3RlciBoYXMgdGhlIGhpZ2hlc3Qgc2ltaWxhcml0eSwgaXMgbGlrZWx5IHRoZSBjZWxsIHR5cGUgcmVwcmVzZW50ZWQgYnkgdGhhdCBjbHVzdGVyLiBXZSBjYW4gc3Vic2VxdWVudGx5IG1hbnVhbGx5IHZlcmlmeSBlYWNoIG9mIHRoZXNlIGFzc2lnbm1lbnRzLiAgIAoKV2UgY2FuIHVzZSBkYXRhIGZyb20gcHJldmlvdXMgc2luZ2xlIGNlbGwgUk5BLXNlcSBzdHVkaWVzIHRvIGRvIHRoaXMuIFRoZXJlIGFyZSB0aHJlZSBzdHVkaWVzIHRoYXQgd2UgY2FuIHVzZS4gCgoxLiBbQHBhdmxpY2V2X3NpbmdsZS1jZWxsXzIwMTddOiBUaGlzIGlzIHNjUk5BLXNlcSBvZiB0aGUgdmlsbGkgYXQgdGVybS4gQXBwZW5kZWQgdG8gdGhlIHZpbGxpIGRhdGEgYXJlIGFsc28gYnVsayB0cmFuc2NyaXB0b21lcyBvZiBlbmRvbWV0cmlhbCBzdG9ybWFsIGZpYnJvYmxhc3RzIChFU0YpIGFuZCBkZWNpZHVhbCBzdHJvbWFsIGNlbGxzIChEU0MpIGZyb20gcHJpbWFyeSBjdWx0dXJlcy4gU2luY2UgdGhpcyBpcyBhbiBvbGQgZmx1aWRpZ20tYmFzZWQgc3R1ZHksIHRoZSBudW1iZXIgb2YgY2VsbHMgaXMgc21hbGxlciBjb21wYXJlZCB0byAxMHguIAoyLiBbQHZlbnRvLXRvcm1vX3NpbmdsZS1jZWxsXzIwMThdOiBUaGlzIGlzIHNjUk5BLXNlcSBvZiBmZXRhbC1tYXRlcm5hbCBpbnRlcmZhY2UgaW4gdGhlIGZpcnN0IHRyaW1lc3Rlci4gCjMuIFtAc3VyeWF3YW5zaGlfc2luZ2xlLWNlbGxfMjAxOF06IFRoaXMgaXMgYWxzbyBzY1JOQS1zZXEgb2YgZmV0YWwtbWF0ZXJuYWwgaW50ZXJmYWNlIGluIHRoZSBmaXJzdCB0cmltZXN0ZXIuIAoKT2YgdGhlc2Ugc3R1ZGllcywgW0BwYXZsaWNldl9zaW5nbGUtY2VsbF8yMDE3XSBpcyB0aGUgb25seSBkYXRhc2V0IGZyb20gdGVybSBzYW1wbGVzLiBFdmVuIHRob3VnaCBvdXIgZGF0YSBhcmUgZnJvbSB0ZXJtIHNhbXBsZXMsIGl0IHdvdWxkIGJlIHdvcnRoIGl0IHRvIGNvbXBhcmUgdGhlbSB0byB0aGUgZmlyc3QtdHJpbWVzdGVyIGRhdGEgZnJvbSBbQHZlbnRvLXRvcm1vX3NpbmdsZS1jZWxsXzIwMThdIGFuZCBbQHN1cnlhd2Fuc2hpX3NpbmdsZS1jZWxsXzIwMThdLiBUaGVyZSBhcmUgbWFueSBjZWxsIHR5cGVzIGF0IHRoZSBmZXRhbC1tYXRlcm5hbCBpbnRlcmZhY2UgdGhhdCBkb24ndCBjaGFuZ2UgdGhyb3VnaCBwcmVnbmFuY3ktLS10aGV5IGNhbiBiZSBlYXNpbHkgY3Jvc3MtbWFwcGVkIGV2ZW4gd2l0aCB0aGUgZmlyc3QtdHJpbWVzdGVyIGRhdGEuIEV2ZW4gZm9yIGNlbGwgdHlwZXMgdGhhdCBkbyBjaGFuZ2UsIHdlIGNvdWxkIHVzZSB0aGlzIGNvbXBhcmlzb24gdG8gbmFycm93IGRvd24gdGhlaXIgaWRlbnRpdGllcy4KCgojIEdldCBkYXRhIGluIHNoYXBlClRoZSBkYXRhIGZyb20gYWxsIHRocmVlIHN0dWRpZXMgYXJlIGluIGRpZmZlcmVudCBmb3JtYXRzLCB1c2UgZGlmZmVyZW50IGdlbmUgbmFtZXMgZXRjLiBXZSBuZWVkIHRvIGZpcnN0IGdldCB0aGVtIGFsbCBpbiBzaGFwZSBhbmQgbWFrZSB0aGVtIGNvbXBhcmFibGUuIAoKIyMgVmVudG8tVG9ybW8gZXQgYWwKVGhlIHJhdyBmZWF0dXJlIGJ5IGJhcmNvZGUgY291bnRzIG1hdHJpeCBmcm9tIHRoZSAxMHggcnVucyAoYHJhd19kYXRhXzEweC50eHRgKSB3ZXJlIGRvd25sb2FkZWQgZnJvbSBBcnJheUV4cHJlc3MgYWNjZXNzaW9uIFtFLU1UQUItNjcwMV0oaHR0cHM6Ly93d3cuZWJpLmFjLnVrL2FycmF5ZXhwcmVzcy9leHBlcmltZW50cy9FLU1UQUItNjcwMS9maWxlcy8pLiBUaGUgYXNzb2NpYXRlZCBtZXRhZGF0YSBmaWxlIGBtZXRhXzEweC50eHRgIGNvbnRhaW5zIGNlbGwgbWV0YWRhdGEgaW5jbHVkaW5nIGNsdXN0ZXIgaWRzIGFuZCBjZWxsIHR5cGUgYW5ub3RhdGlvbnMuIAoKV2Ugd2FudCB0byAoMSkgcmVhZCB0aGVzZSBkYXRhLCAoMikgc3VtIGNvdW50cyBmb3IgYWxsIGNlbGwgd2l0aCB0aGUgc2FtZSBjZWxsIHR5cGUgYW5ub3RhdGlvbiwgYW5kICgzKSBub3JtYWxpemUgY291bnRzIHRvIGNvdW50cyBwZXIgbWlsbGlvbiAoY3BtKS4gVGhpcyBnaXZlcyB1cyBidWxrLXJlcHJlc2VudGF0aW9uIG9mIHRoZSB0cmFuc2NyaXB0b21lcyBmb3IgYWxsIGFubm90YXRlZCBjZWxsIHR5cGVzLiAKCmBgYHtyfQojIyMgcmVhZCBkYXRhCnZlbnRvLm1ldGEgPC0gcmVhZC50YWJsZSgiLi4vaW5mby9mcm9tLXBhcGVycy92ZW50by10b3Jtb18yMDE4LzEweF9hcnJheWV4cHJlc3MvbWV0YV8xMHgudHh0IiwgaGVhZGVyID0gVFJVRSwgc2VwID0gIlx0IikKdmVudG8ucmF3IDwtIHJlYWRTcGFyc2VDb3VudHMoIi4uL2luZm8vZnJvbS1wYXBlcnMvdmVudG8tdG9ybW9fMjAxOC8xMHhfYXJyYXlleHByZXNzL3Jhd19kYXRhXzEweC50eHQiLCBzZXAgPSAiXHQiLCByb3cubmFtZXMgPSBUUlVFLCBjb2wubmFtZXMgPSBUUlVFKSAgIyBoYXZlIHRvIHVzZSByZWFkU3BhcnNlQ291bnRzIGJlY2F1c2UgdGhlIGZpbGUgaXMgdG9vIGJpZy4gCmBgYAoKYGBge3J9CmRpbSh2ZW50by5yYXcpCmhlYWQodmVudG8ucmF3WywgMToyXSkgICAjIGZpcnN0IGZpdmUgZmV3IHJvd3MgYW5kIGNvbHVtbnMKCmhlYWQodmVudG8ubWV0YSwgMTApICAjIGNlbGwgbWV0YWRhdGEKYGBgClRoaXMgY29udGFpbnMgZGF0YSBmb3IgYHIgZGltKHZlbnRvLnJhdylbMV1gIGdlbmVzIGFuZCBgciBkaW0odmVudG8ucmF3KVsyXWAgY2VsbHMuIAoKYGBge3J9CiMjIyBjcmVhdGUgU2luZ2xlQ2VsbEV4cGVyaW1lbnQgb2JqZWN0CnZlbnRvLnNjZSA8LSBTaW5nbGVDZWxsRXhwZXJpbWVudChhc3NheXMgPSBsaXN0KGNvdW50cyA9IHZlbnRvLnJhdykpCgoKCmBgYAoKIyBTZXNzaW9uIEluZm8KYGBge3J9CnNlc3Npb25JbmZvKCkKYGBgCgojIFJlZmVyZW5jZXMKCgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUmVmZXJlbmNlIGNlbGwgYXRsYXMgZm9yIGRlY2lkdWEgYW5kIHZpbGxpIgpzdWJ0aXRsZTogCmF1dGhvcjogIkFydW4gQ2hhdmFuIgpvdXRwdXQ6CiAgaHRtbF9ub3RlYm9vazoKICAgIHRvYzogeWVzCiAgICB0b2NfZmxvYXQ6IHllcwogICAgbnVtYmVyX3NlY3Rpb25zOiB0cnVlCmJpYmxpb2dyYXBoeTogLi4vcmVmcy5iaWIKLS0tClN0YXJ0ZWQ6IDIwMjAtMDgtMzEgIApMYXN0IGVkaXRlZDogYHIgZm9ybWF0KFN5cy50aW1lKCkpYAoKYGBge3IgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0KIyMjIHBhY2thZ2VzCmxpYnJhcnkodGlkeXZlcnNlKQpsaWJyYXJ5KHNjYXRlcikKYGBgCgojIEJhY2tncm91bmQKVGhlIGdvYWwgaGVyZSBpcyB0byBjcmVhdGUgYSByZWZlcmVuY2Ugc2V0IG9mIGNlbGx0eXBlLXNwZWNpZmljIHRyYW5zY3JpcHRvbWVzIGZvciBjZWxsIHR5cGVzIHByZXNlbnQgYXQgdGhlIGh1bWFuIGZldGFsLW1hdGVybmFsIGludGVyZmFjZS4gSWRlYWxseSB3ZSB3YW50IGJ1bGstcmVwcmVzZW50YXRpb25zIG9mIHRyYW5zY3JpcHRvbWVzIGZvciBhbGwgY2VsbCB0eXBlcy4gV2UgY2FuIGNvbXBhcmUgKGJ5IGNhbGN1bGF0aW5nIGNvcnJlbGF0aW9uIGNvZWZmaWNpZW50cywgZS5nLikgdGhlc2UgdG8gdGhlIGF2ZXJhZ2VkIHRyYW5jcmlwdG9tZXMgZm9yIGVhY2ggY2x1c3RlciBmcm9tIG91ciBkYXRhLiBUaGUgY2VsbCB0eXBlIHRvIHdoaWNoIGEgY2x1c3RlciBoYXMgdGhlIGhpZ2hlc3Qgc2ltaWxhcml0eSwgaXMgbGlrZWx5IHRoZSBjZWxsIHR5cGUgcmVwcmVzZW50ZWQgYnkgdGhhdCBjbHVzdGVyLiBXZSBjYW4gc3Vic2VxdWVudGx5IG1hbnVhbGx5IHZlcmlmeSBlYWNoIG9mIHRoZXNlIGFzc2lnbm1lbnRzLiAgIAoKV2UgY2FuIHVzZSBkYXRhIGZyb20gcHJldmlvdXMgc2luZ2xlIGNlbGwgUk5BLXNlcSBzdHVkaWVzIHRvIGRvIHRoaXMuIFRoZXJlIGFyZSB0aHJlZSBzdHVkaWVzIHRoYXQgd2UgY2FuIHVzZS4gCgoxLiBbQHBhdmxpY2V2X3NpbmdsZS1jZWxsXzIwMTddOiBUaGlzIGlzIHNjUk5BLXNlcSBvZiB0aGUgdmlsbGkgYXQgdGVybS4gQXBwZW5kZWQgdG8gdGhlIHZpbGxpIGRhdGEgYXJlIGFsc28gYnVsayB0cmFuc2NyaXB0b21lcyBvZiBlbmRvbWV0cmlhbCBzdG9ybWFsIGZpYnJvYmxhc3RzIChFU0YpIGFuZCBkZWNpZHVhbCBzdHJvbWFsIGNlbGxzIChEU0MpIGZyb20gcHJpbWFyeSBjdWx0dXJlcy4gU2luY2UgdGhpcyBpcyBhbiBvbGQgZmx1aWRpZ20tYmFzZWQgc3R1ZHksIHRoZSBudW1iZXIgb2YgY2VsbHMgaXMgc21hbGxlciBjb21wYXJlZCB0byAxMHguIAoyLiBbQHZlbnRvLXRvcm1vX3NpbmdsZS1jZWxsXzIwMThdOiBUaGlzIGlzIHNjUk5BLXNlcSBvZiBmZXRhbC1tYXRlcm5hbCBpbnRlcmZhY2UgaW4gdGhlIGZpcnN0IHRyaW1lc3Rlci4gCjMuIFtAc3VyeWF3YW5zaGlfc2luZ2xlLWNlbGxfMjAxOF06IFRoaXMgaXMgYWxzbyBzY1JOQS1zZXEgb2YgZmV0YWwtbWF0ZXJuYWwgaW50ZXJmYWNlIGluIHRoZSBmaXJzdCB0cmltZXN0ZXIuIAoKT2YgdGhlc2Ugc3R1ZGllcywgW0BwYXZsaWNldl9zaW5nbGUtY2VsbF8yMDE3XSBpcyB0aGUgb25seSBkYXRhc2V0IGZyb20gdGVybSBzYW1wbGVzLiBFdmVuIHRob3VnaCBvdXIgZGF0YSBhcmUgZnJvbSB0ZXJtIHNhbXBsZXMsIGl0IHdvdWxkIGJlIHdvcnRoIGl0IHRvIGNvbXBhcmUgdGhlbSB0byB0aGUgZmlyc3QtdHJpbWVzdGVyIGRhdGEgZnJvbSBbQHZlbnRvLXRvcm1vX3NpbmdsZS1jZWxsXzIwMThdIGFuZCBbQHN1cnlhd2Fuc2hpX3NpbmdsZS1jZWxsXzIwMThdLiBUaGVyZSBhcmUgbWFueSBjZWxsIHR5cGVzIGF0IHRoZSBmZXRhbC1tYXRlcm5hbCBpbnRlcmZhY2UgdGhhdCBkb24ndCBjaGFuZ2UgdGhyb3VnaCBwcmVnbmFuY3ktLS10aGV5IGNhbiBiZSBlYXNpbHkgY3Jvc3MtbWFwcGVkIGV2ZW4gd2l0aCB0aGUgZmlyc3QtdHJpbWVzdGVyIGRhdGEuIEV2ZW4gZm9yIGNlbGwgdHlwZXMgdGhhdCBkbyBjaGFuZ2UsIHdlIGNvdWxkIHVzZSB0aGlzIGNvbXBhcmlzb24gdG8gbmFycm93IGRvd24gdGhlaXIgaWRlbnRpdGllcy4KCgojIEdldCBkYXRhIGluIHNoYXBlClRoZSBkYXRhIGZyb20gYWxsIHRocmVlIHN0dWRpZXMgYXJlIGluIGRpZmZlcmVudCBmb3JtYXRzLCB1c2UgZGlmZmVyZW50IGdlbmUgbmFtZXMgZXRjLiBXZSBuZWVkIHRvIGZpcnN0IGdldCB0aGVtIGFsbCBpbiBzaGFwZSBhbmQgbWFrZSB0aGVtIGNvbXBhcmFibGUuIAoKIyMgVmVudG8tVG9ybW8gZXQgYWwKVGhlIHJhdyBmZWF0dXJlIGJ5IGJhcmNvZGUgY291bnRzIG1hdHJpeCBmcm9tIHRoZSAxMHggcnVucyAoYHJhd19kYXRhXzEweC50eHRgKSB3ZXJlIGRvd25sb2FkZWQgZnJvbSBBcnJheUV4cHJlc3MgYWNjZXNzaW9uIFtFLU1UQUItNjcwMV0oaHR0cHM6Ly93d3cuZWJpLmFjLnVrL2FycmF5ZXhwcmVzcy9leHBlcmltZW50cy9FLU1UQUItNjcwMS9maWxlcy8pLiBUaGUgYXNzb2NpYXRlZCBtZXRhZGF0YSBmaWxlIGBtZXRhXzEweC50eHRgIGNvbnRhaW5zIGNlbGwgbWV0YWRhdGEgaW5jbHVkaW5nIGNsdXN0ZXIgaWRzIGFuZCBjZWxsIHR5cGUgYW5ub3RhdGlvbnMuIAoKV2Ugd2FudCB0byAoMSkgcmVhZCB0aGVzZSBkYXRhLCAoMikgc3VtIGNvdW50cyBmb3IgYWxsIGNlbGwgd2l0aCB0aGUgc2FtZSBjZWxsIHR5cGUgYW5ub3RhdGlvbiwgYW5kICgzKSBub3JtYWxpemUgY291bnRzIHRvIGNvdW50cyBwZXIgbWlsbGlvbiAoY3BtKS4gVGhpcyBnaXZlcyB1cyBidWxrLXJlcHJlc2VudGF0aW9uIG9mIHRoZSB0cmFuc2NyaXB0b21lcyBmb3IgYWxsIGFubm90YXRlZCBjZWxsIHR5cGVzLiAKCiMjIyBEYXRhCgpgYGB7cn0KIyMjIHJlYWQgZGF0YQp2ZW50by5tZXRhIDwtIHJlYWQudGFibGUoIi4uL2luZm8vZnJvbS1wYXBlcnMvdmVudG8tdG9ybW9fMjAxOC8xMHhfYXJyYXlleHByZXNzL21ldGFfMTB4LnR4dCIsIGhlYWRlciA9IFRSVUUsIHNlcCA9ICJcdCIpCnZlbnRvLnJhdyA8LSByZWFkU3BhcnNlQ291bnRzKCIuLi9pbmZvL2Zyb20tcGFwZXJzL3ZlbnRvLXRvcm1vXzIwMTgvMTB4X2FycmF5ZXhwcmVzcy9yYXdfZGF0YV8xMHgudHh0Iiwgc2VwID0gIlx0Iiwgcm93Lm5hbWVzID0gVFJVRSwgY29sLm5hbWVzID0gVFJVRSkgICMgaGF2ZSB0byB1c2UgcmVhZFNwYXJzZUNvdW50cyBiZWNhdXNlIHRoZSBmaWxlIGlzIHRvbyBiaWcuIApgYGAKClRoZSBjb3VudHMgbWF0cml4IGlzIGZvciBgciBkaW0odmVudG8ucmF3KVsyXWAgY2VsbHMuIApgYGB7cn0KZGltKHZlbnRvLnJhdykKaGVhZCh2ZW50by5yYXdbLCAxOjJdKSAgICMgZmlyc3QgZml2ZSBmZXcgcm93cyBhbmQgY29sdW1ucwpgYGAKClRoZSBtZXRhZGF0YSBsb29rcyBsaWtlIHRoaXM6CmBgYHtyfQpoZWFkKHZlbnRvLm1ldGEsIDEwKSAgIyBjZWxsIG1ldGFkYXRhCmBgYAoKQWNjb3JkaW5nIHRvIHRoZSBtZXRhZGF0YSBmaWxlLCB0aGVyZSBhcmUgMzggY2x1c3RlcnMuIApgYGB7cn0KdmVudG8ubWV0YSRmaW5hbF9jbHVzdGVyICU+JSB1bmlxdWUoKSAlPiUgc29ydCgpICMgZmluYWwgY2x1c3RlcnMKYGBgCgpUaGVzZSBjbHVzdGVycyBhcmUgYXNzb2NpYXRlZCB3aXRoIHRoZSBmb2xsb3dpbmcgMzEgY2VsbCB0eXBlcyBhbm5vdGF0aW9ucy4gCmBgYHtyfQp2ZW50by5tZXRhJGFubm90YXRpb24gJT4lIHVuaXF1ZSgpICU+JSBzb3J0KCkgJT4lIGNhdChzZXAgPSAiLCAiKSAjIGFubm90YXRpb25zCmBgYAoKIyMjIENvbnZlcnQgaW50byBhIGBTaW5nbGVDZWxsRXhwZXJpbWVudGAgb2JqZWN0CmBgYHtyfQojIyMgY3JlYXRlIFNpbmdsZUNlbGxFeHBlcmltZW50IG9iamVjdCAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCnZlbnRvLnNjZSA8LSBTaW5nbGVDZWxsRXhwZXJpbWVudChhc3NheXMgPSBsaXN0KGNvdW50cyA9IHZlbnRvLnJhdykpCgojIyMgYWRkIGNvbERhdGEgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCmNvbERhdGEodmVudG8uc2NlKSRsb2NhdGlvbiA8LSB2ZW50by5tZXRhJGxvY2F0aW9uW21hdGNoKHJvd25hbWVzKGNvbERhdGEodmVudG8uc2NlKSksIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0YWJsZSA9IHJvd25hbWVzKHZlbnRvLm1ldGEpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICldICMgYW5hdG9taWNhbCBsb2NhdGlvbgpjb2xEYXRhKHZlbnRvLnNjZSkkY2VsbHR5cGUgPC0gdmVudG8ubWV0YSRhbm5vdGF0aW9uW21hdGNoKHJvd25hbWVzKGNvbERhdGEodmVudG8uc2NlKSksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdGFibGUgPSByb3duYW1lcyh2ZW50by5tZXRhKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICldICMgY2VsbCB0eXBlIGFubm90YXRpb25zCgojIyMgcm93RGF0YSAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCiMgZXh0cmFjdCBlbnNlbWJsIGlkIGZyb20gcm93bmFtZXMKcm93RGF0YSh2ZW50by5zY2UpJElEIDwtIGdzdWIocGF0dGVybiAgPSAiKC4rKShfKShFTlNHXFxkKykiLCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmVwbGFjZW1lbnQgPSAiXFwzIiwgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJvd25hbWVzKHJvd0RhdGEodmVudG8uc2NlKSkpCgojIGV4dHJhY3QgZ2VuZSBzeW1ib2wgZnJvbSBnZW5lIG5hbWVzCnJvd0RhdGEodmVudG8uc2NlKSRTeW1ib2wgPC0gZ3N1YihwYXR0ZXJuID0gIl9FTlNHXFxkKyIsIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmVwbGFjZW1lbnQgPSAiIiwgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICByb3duYW1lcyhyb3dEYXRhKHZlbnRvLnNjZSkpKQpgYGAKCiMjIyBBZ2dyZWdhdGUgZGF0YSBieSBjZWxsIHR5cGUgYW5ub3RhdGlvbgpgYGB7cn0KIyBzdW0gY291bnRzIGFjcm9zcyBiYXJjb2RlcyBieSBjZWxsIHR5cGUgYW5ub3RhdGlvbgp2ZW50by5zdW0gPC0gYWdncmVnYXRlQWNyb3NzQ2VsbHModmVudG8uc2NlLCAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlkcyA9IHZlbnRvLnNjZSRjZWxsdHlwZSwgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBhdmVyYWdlID0gRkFMU0UsIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdXNlX2V4cHJzX3ZhbHVlcyA9ICJjb3VudHMiKQoKIyBzdW1tZWQgbGlicmFyeSBzaXplcwpjb2xTdW1zKHZlbnRvLnN1bUBhc3NheXNAZGF0YUBsaXN0RGF0YSRjb3VudHMpCmBgYAoKYGBge3J9CiMgY2FsY3VsYXRlIGNwbQphc3NheSh2ZW50by5zdW0sICJjcG0iKSA8LSBjYWxjdWxhdGVDUE0oYXNzYXkodmVudG8uc3VtLCAiY291bnRzIikpCgojIHdyaXRlIGNwbSB0byBkYXRhLmZyYW1lCnZlbnRvLmNwbSA8LSBhc3NheSh2ZW50by5zdW0sICJjcG0iKSAlPiUgYXMuZGF0YS5mcmFtZSgpCgojIGNoYW5nZSBjb2x1bW4gbmFtZXMgdG8gbGVnYWwgY2hhcmFjdGVycyBhbmQgYWRkIGB2ZW50b2Agc3VmZml4Cm5hbWVzKHZlbnRvLmNwbSlbbmFtZXModmVudG8uY3BtKSA9PSAiZE5LIHAiXSA8LSAiZE5LLnAiCm5hbWVzKHZlbnRvLmNwbSlbbmFtZXModmVudG8uY3BtKSA9PSAiRW5kbyAoZikiXSA8LSAiRW5kby5mIgpuYW1lcyh2ZW50by5jcG0pW25hbWVzKHZlbnRvLmNwbSkgPT0gIkVuZG8gKG0pIl0gPC0gIkVuZG8ubSIKbmFtZXModmVudG8uY3BtKVtuYW1lcyh2ZW50by5jcG0pID09ICJFbmRvIEwiXSA8LSAiRW5kby5MIgpuYW1lcyh2ZW50by5jcG0pW25hbWVzKHZlbnRvLmNwbSkgPT0gIk5LIENEMTYtIl0gPC0gIk5LLkNEMTZuZWciCm5hbWVzKHZlbnRvLmNwbSlbbmFtZXModmVudG8uY3BtKSA9PSAiTksgQ0QxNisiXSA8LSAiTksuQ0QxNnBvcyIKCm5hbWVzKHZlbnRvLmNwbSkgPC0gcGFzdGUwKCJ2ZW50b18iLCBuYW1lcyh2ZW50by5jcG0pKQoKIyBhZGQgZ2VuZSBuYW1lcyBjb2x1bW4KdmVudG8uY3BtJGdlbmVfbmFtZSA8LSBnc3ViKCJfRU5TR1xcZCsiLCAiIiwgcm93bmFtZXModmVudG8uY3BtKSkKdmVudG8uY3BtIDwtIHZlbnRvLmNwbSAlPiUgcmVsb2NhdGUoZ2VuZV9uYW1lKSAjIG1ha2UgaXQgdGhlIGZpcnN0IGNvbHVtbgoKIyByZW1vdmUgcm93cyB0aGF0IGhhdmUgZHVwbGljYXRlZCBnZW5lIG5hbWVzCmR1cGdlbmVzIDwtIHRhYmxlKHZlbnRvLmNwbSRnZW5lX25hbWUpICU+JSBhcy5kYXRhLmZyYW1lKCkgJT4lIGZpbHRlcihGcmVxID4gMSkKdmVudG8uY3BtIDwtIHZlbnRvLmNwbVshKHZlbnRvLmNwbSRnZW5lX25hbWUgJWluJSBkdXBnZW5lcyRWYXIxKSwgXQpyb3duYW1lcyh2ZW50by5jcG0pIDwtIE5VTEwKCiMgd3JpdGUKd3JpdGUuY3N2KHZlbnRvLmNwbSwgZmlsZSA9ICIuLi9yZXN1bHRzLzAxX3JlZmVyZW5jZS1hdGxhcy92ZW50by10b3Jtb19jcG0tYnktY2VsbHR5cGUuY3N2Iiwgcm93Lm5hbWVzID0gRkFMU0UpCmBgYAoKCiMgU2Vzc2lvbiBJbmZvCmBgYHtyfQpzZXNzaW9uSW5mbygpCmBgYAoKIyBSZWZlcmVuY2VzCgoK</div>
 
 
 </div>

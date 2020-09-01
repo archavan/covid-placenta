@@ -38,27 +38,102 @@ The raw feature by barcode counts matrix from the 10x runs (`raw_data_10x.txt`) 
 
 We want to (1) read these data, (2) sum counts for all cell with the same cell type annotation, and (3) normalize counts to counts per million (cpm). This gives us bulk-representation of the transcriptomes for all annotated cell types. 
 
+### Data
+
 ```{r}
 ### read data
 vento.meta <- read.table("../info/from-papers/vento-tormo_2018/10x_arrayexpress/meta_10x.txt", header = TRUE, sep = "\t")
 vento.raw <- readSparseCounts("../info/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE)  # have to use readSparseCounts because the file is too big. 
 ```
 
+The counts matrix is for `r dim(vento.raw)[2]` cells. 
 ```{r}
 dim(vento.raw)
 head(vento.raw[, 1:2])   # first five few rows and columns
+```
 
+The metadata looks like this:
+```{r}
 head(vento.meta, 10)  # cell metadata
 ```
-This contains data for `r dim(vento.raw)[1]` genes and `r dim(vento.raw)[2]` cells. 
 
+According to the metadata file, there are 38 clusters. 
 ```{r}
-### create SingleCellExperiment object
+vento.meta$final_cluster %>% unique() %>% sort() # final clusters
+```
+
+These clusters are associated with the following 31 cell types annotations. 
+```{r}
+vento.meta$annotation %>% unique() %>% sort() %>% cat(sep = ", ") # annotations
+```
+
+### Convert into a `SingleCellExperiment` object
+```{r}
+### create SingleCellExperiment object ----------------------------------------
 vento.sce <- SingleCellExperiment(assays = list(counts = vento.raw))
 
+### add colData ---------------------------------------------------------------
+colData(vento.sce)$location <- vento.meta$location[match(rownames(colData(vento.sce)), 
+                                                         table = rownames(vento.meta)
+                                                         )] # anatomical location
+colData(vento.sce)$celltype <- vento.meta$annotation[match(rownames(colData(vento.sce)),
+                                                           table = rownames(vento.meta)
+                                                           )] # cell type annotations
 
+### rowData -------------------------------------------------------------------
+# extract ensembl id from rownames
+rowData(vento.sce)$ID <- gsub(pattern  = "(.+)(_)(ENSG\\d+)", 
+                              replacement = "\\3", 
+                              rownames(rowData(vento.sce)))
 
+# extract gene symbol from gene names
+rowData(vento.sce)$Symbol <- gsub(pattern = "_ENSG\\d+", 
+                                  replacement = "", 
+                                  rownames(rowData(vento.sce)))
 ```
+
+### Aggregate data by cell type annotation
+```{r}
+# sum counts across barcodes by cell type annotation
+vento.sum <- aggregateAcrossCells(vento.sce, 
+                                  ids = vento.sce$celltype, 
+                                  average = FALSE, 
+                                  use_exprs_values = "counts")
+
+# summed library sizes
+colSums(vento.sum@assays@data@listData$counts)
+```
+
+```{r}
+# calculate cpm
+assay(vento.sum, "cpm") <- calculateCPM(assay(vento.sum, "counts"))
+
+# write cpm to data.frame
+vento.cpm <- assay(vento.sum, "cpm") %>% as.data.frame()
+
+# change column names to legal characters and add `vento` suffix
+names(vento.cpm)[names(vento.cpm) == "dNK p"] <- "dNK.p"
+names(vento.cpm)[names(vento.cpm) == "Endo (f)"] <- "Endo.f"
+names(vento.cpm)[names(vento.cpm) == "Endo (m)"] <- "Endo.m"
+names(vento.cpm)[names(vento.cpm) == "Endo L"] <- "Endo.L"
+names(vento.cpm)[names(vento.cpm) == "NK CD16-"] <- "NK.CD16neg"
+names(vento.cpm)[names(vento.cpm) == "NK CD16+"] <- "NK.CD16pos"
+
+names(vento.cpm) <- paste0("vento_", names(vento.cpm))
+
+# add gene names column
+vento.cpm$gene_name <- gsub("_ENSG\\d+", "", rownames(vento.cpm))
+vento.cpm <- vento.cpm %>% relocate(gene_name) # make it the first column
+
+# remove rows that have duplicated gene names
+dupgenes <- table(vento.cpm$gene_name) %>% as.data.frame() %>% filter(Freq > 1)
+vento.cpm <- vento.cpm[!(vento.cpm$gene_name %in% dupgenes$Var1), ]
+rownames(vento.cpm) <- NULL
+
+# write
+write.csv(vento.cpm, file = "../results/01_reference-atlas/vento-tormo_cpm-by-celltype.csv", row.names = FALSE)
+```
+
 
 # Session Info
 ```{r}
