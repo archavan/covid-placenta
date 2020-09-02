@@ -43,7 +43,7 @@ We want to (1) read these data, (2) sum counts for all cell with the same cell t
 ```{r}
 ### read data
 vento.meta <- read.table("../info/from-papers/vento-tormo_2018/10x_arrayexpress/meta_10x.txt", header = TRUE, sep = "\t")
-vento.raw <- readSparseCounts("../info/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE)  # have to use readSparseCounts because the file is too big. 
+vento.raw <- readSparseCounts("../info/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE, chunk = 100)  # have to use readSparseCounts because the file is too big. 
 ```
 
 The counts matrix is for 64734 cells. 
@@ -239,13 +239,13 @@ Steps:
 
 1. Measure spearman correlation between all pairs of celltypes from all datasets.
 2. Perform clustering using `1 - correlation` as distance, so that we can reorder the rows and columns by clustering pattern when plotting heatmaps.
-3. Subset the correlation matrix to the desired pair of datasets, `dataset_y` and `dataset_x`. (e.g. vento vs. surya)
-4. Find top 3 celltypes in `dataset_x` that have the highest correlation coefficient with each celltype in `dataset_y`.
+3. Subset the correlation matrix to the desired pair of datasets, `query` and `reference`. (e.g. vento vs. surya)
+4. Find top 3 celltypes in `reference` that have the highest correlation coefficient with each celltype in `query`.
 5. Plot the heatmap of correlation matrix, indicating the top 3 most similar celltypes. 
 
 ```{r}
 # function for plotting correlation between celltypes from two datasets
-celltypeCorPlot <- function(expdat, dataset_x, dataset_y, ...){
+celltypeCorPlot <- function(expdat, reference, query, ...){
   
   ## build correlation matrix from expression data
   cor.matrix <- cor(expdat[, names(expdat)[names(expdat) != "gene_name"]], 
@@ -262,8 +262,8 @@ celltypeCorPlot <- function(expdat, dataset_x, dataset_y, ...){
   dat$Var2_source <- sapply(strsplit(as.character(dat$Var2), split = "_"), "[[", 1)
   
   ## subset to the datasets you want to plot
-  dat <- dat[which(dat$Var1_source %in% c(dataset_x) & 
-                     dat$Var2_source %in% c(dataset_y)), ]
+  dat <- dat[which(dat$Var1_source %in% c(reference) & 
+                     dat$Var2_source %in% c(query)), ]
   
   ## max correlation coefficients
   # mark top3 celltypes from Var1 for each celltype in Var2.
@@ -289,10 +289,10 @@ celltypeCorPlot <- function(expdat, dataset_x, dataset_y, ...){
                        breaks = c(1, 2, 3),
                        name = "top3", na.value = 0) +
     coord_fixed(ratio = 1) +
-    xlab("dataset_x") +
-    ylab("dataset_y") +
-    labs(caption = "For each celltype in dataset_y, black points represent top 3 celltypes from dataset_x with highest correlation.",
-         title = paste0(dataset_y, " vs. ", dataset_x)) +
+    xlab("reference") +
+    ylab("query") +
+    labs(caption = "For each celltype in query, black points represent top 3 celltypes from reference with highest correlation.",
+         title = paste0(query, " vs. ", reference)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, size = 8, 
                                      hjust=1, vjust = 0.5),
@@ -310,7 +310,7 @@ celltypeCorPlot <- function(expdat, dataset_x, dataset_y, ...){
 
 ```
 
-Because we are looking for the most similar celltypes to `dataset_y` in `dataset_x`, we will only plot the combinations where `dataset_x` has more comprehensive sampling than `dataset_y`. See below for plots. Here are some observations:
+Because we are looking for the most similar celltypes to `query` in `reference`, we will only plot the combinations where `reference` has more comprehensive sampling than `query`. See below for plots. Here are some observations:
 
 1. This works quite well---much better than I was hoping. Comparable celltypes tend to have the highest correlation between dataset pairs. 
 2. Mapping is coarse in `pavli vs. surya` and `pavli vs. vento` pairs, given than the resolution in `pavli` is much lower than the other datasets. 
@@ -323,21 +323,21 @@ Because we are looking for the most similar celltypes to `dataset_y` in `dataset
 These observations are encouraging, suggesting this approach might work for first-pass cell type annotations of our data. We can measure correlations with both vento and surya data. 
 
 ```{r fig.width=6, fig.asp=0.55}
-pavli.vs.surya <- celltypeCorPlot(expdat = vsp, dataset_y = "pavli", dataset_x = "surya")
+pavli.vs.surya <- celltypeCorPlot(expdat = vsp, query = "pavli", reference = "surya")
 cowplot::ggsave2(pavli.vs.surya, filename = "../results/01_reference-atlas/corr-plot_pavli-vs-surya.pdf", 
                  device = "pdf", width = 6, height = 4, units = "in")
 print(pavli.vs.surya)
 ```
 
 ```{r fig.width=7, fig.asp=0.55}
-pavli.vs.vento <- celltypeCorPlot(expdat = vsp, dataset_y = "pavli", dataset_x = "vento")
+pavli.vs.vento <- celltypeCorPlot(expdat = vsp, query = "pavli", reference = "vento")
 cowplot::ggsave2(pavli.vs.vento, filename = "../results/01_reference-atlas/corr-plot_pavli-vs-vento.pdf", 
                  device = "pdf", width = 7, height = 4, units = "in")
 print(pavli.vs.vento)
 ```
 
 ```{r fig.width=7, fig.asp=0.8}
-surya.vs.vento <- celltypeCorPlot(expdat = vsp, dataset_y = "surya", dataset_x = "vento")
+surya.vs.vento <- celltypeCorPlot(expdat = vsp, query = "surya", reference = "vento")
 cowplot::ggsave2(surya.vs.vento, filename = "../results/01_reference-atlas/corr-plot_surya-vs-vento.pdf", 
                  device = "pdf", width = 7, height = 6, units = "in")
 print(surya.vs.vento)
