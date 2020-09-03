@@ -1,0 +1,225 @@
+---
+title: "Annotation of clusters in 10x data"
+subtitle: 
+author: "Arun Chavan"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    number_sections: true
+bibliography: ../refs.bib
+---
+Started: 2020-09-02  
+Last edited: `r format(Sys.time())`
+
+```{r message=FALSE, warning=FALSE}
+### packages
+library(tidyverse)
+```
+
+We can take a first pass at annotating the clusters from our 10x data by comparing them to the reference dataset that we put together. This was done by compiling celltype-averaged expression values from the following single cell RNA-seq studies: [@pavlicev_single-cell_2017; @vento-tormo_single-cell_2018; @suryawanshi_single-cell_2018]. 
+
+# COVID data and reference data
+The single cell data were already clustered by Eric. The cluster-averaged gene expressions values are saved as `.csv` in a the folder sent to me by Alice.
+
+```{r}
+# read 10x data
+plac <- read.csv("../info/from-alice/Previous Analysis/Genes by Cluster/placenta_Cluster_genes.csv", stringsAsFactors = FALSE)
+
+# read reference datasets
+ref <- read.csv("../results/01_reference-atlas/vento-surya-pavli_joined.csv", stringsAsFactors = FALSE)
+```
+
+## Get data in shape
+In the COVID data, there are 35 clusters, labelled as `X0`, `X1`, and so on. The Gene names column is labeled `X`, which we will renames. We will also rename the clusters to have the prefix `clust_`. We will also join the data with the reference data so they are both in the same dataframe. 
+
+```{r}
+# rename columns
+names(plac)[names(plac) == "X"] <- "gene_name"
+names(plac)[names(plac) != "gene_name"] <- gsub("X", "clust_", names(plac)[names(plac) != "gene_name"])
+names(plac) <- gsub("(clust_)(\\d)$", "\\10\\2", names(plac)) # left pad single digit cluster ids
+
+# subset to exclude genes absent in the reference dataset
+plac <- dplyr::inner_join(plac, ref, by = "gene_name")
+
+head(plac)
+```
+## Correlations within the data
+Before moving to annotating clusters by comparison with the reference dataset, first we will look at the correlation structure within the dataset.
+
+```{r fig.asp=0.7}
+# build correlation matrix from expression data
+cor.matrix <- cor(plac %>% select(starts_with("clust")), method = 'spearman')
+
+# reorder correlation matrix based on clustering
+dd <- as.dist((1 - cor.matrix)) 
+hc <- hclust(dd, method = 'complete')
+cormat <- cor.matrix[hc$order, hc$order]
+
+# melt correlation matrix
+dat <- reshape2::melt(cormat, na.rm = T)
+
+## plot
+p <- ggplot(data = dat, aes(Var1, Var2, fill = value)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient(low = 'white', high = 'red',
+                      name = "Spearman\nCorrelation") +
+  coord_fixed(ratio = 1) +
+  labs(title = "Correlations among clusters") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, size = 8, 
+                                   hjust=1, vjust = 0.5),
+        axis.text.y = element_text(size=8),
+        axis.ticks.length = unit(0.15, units = c('lines')),
+        legend.title = element_text(size = 10),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        legend.key.size = unit(0.8, units = c('lines')))
+
+ggsave(p, filename = "../results/02_annotation/plots/corrplot_clusters.pdf", 
+       device = "pdf", width = 7, height = 6, units = "in")
+
+print(p)
+```
+
+There are three big cluster blocks, with substructure within them. The cluster blocks also correspond well with the UMAP plot that was sent by Alice. 
+
+# Annotation by correlation
+Let's now actually measure correlations between all clusters with the reference datasets. We will treat our data as query dataset and for each cluster assign top 3 cell types in each reference dataset.
+
+```{r}
+refdata <- c("vento", "surya", "pavli")
+
+# build correlation matrix from expression data
+cor.matrix <- cor(plac[, names(plac)[names(plac) != "gene_name"]], 
+                  method = 'spearman')
+
+# reorder correlation matrix based on clustering
+dd <- as.dist((1 - cor.matrix))
+hc <- hclust(dd, method = 'complete')
+cormat <- cor.matrix[hc$order, hc$order]
+
+# melt correlation matrix
+dat <- reshape2::melt(cormat, na.rm = T)
+dat$Var1_source <- sapply(strsplit(as.character(dat$Var1), split = "_"), "[[", 1)
+dat$Var2_source <- sapply(strsplit(as.character(dat$Var2), split = "_"), "[[", 1)
+
+# subset
+dat <- dat[which(dat$Var1_source %in% refdata & 
+                   dat$Var2_source == "clust"), ]
+
+# top 3 matches with highest correlation coefficients
+topmatch <- data.frame( # empty df to fill top matches from the loop below
+  cluster = unique(as.character(dat$Var2)) %>% sort(),
+  vento.top1 = NA,
+  surya.top1 = NA,
+  pavli.top1 = NA,
+  vento.top2 = NA,
+  surya.top2 = NA,
+  pavli.top2 = NA,
+  vento.top3 = NA,
+  surya.top3 = NA,
+  pavli.top3 = NA
+)
+
+dat$top3 <- NA
+
+for(i in unique(dat$Var2)){
+  for(j in refdata){
+    # identify top3 match indices
+    ind <- which(dat$Var2 == i & dat$Var1_source == j)
+    val <- dat$value[ind]
+    top3ind <- ind[order(val, decreasing = TRUE)[1:3]]
+    
+    # assign match ranking to correlation data for plotting
+    dat$top3[top3ind[1]] <- "1"
+    dat$top3[top3ind[2]] <- "2"
+    dat$top3[top3ind[3]] <- "3"
+    
+    # assign top matches to topmatches dataframe
+    topmatch[topmatch$cluster == i, paste0(j, ".top1")] <- gsub(paste0(j, "_"), "", as.character(dat$Var1[top3ind[1]]))
+    topmatch[topmatch$cluster == i, paste0(j, ".top2")] <- gsub(paste0(j, "_"), "", as.character(dat$Var1[top3ind[2]]))
+    topmatch[topmatch$cluster == i, paste0(j, ".top3")] <- gsub(paste0(j, "_"), "", as.character(dat$Var1[top3ind[3]]))
+  }
+}
+
+```
+
+## Plots
+
+```{r}
+# plotting function
+clustAnnoPlot <- function(dat, query, reference){
+  
+  dat <- dat[which(dat$Var2_source == query & dat$Var1_source == reference), ]
+  
+  p <- ggplot(data = dat, 
+              aes(Var1, Var2, fill = value)) +
+    geom_tile(colour = "white") +
+    scale_fill_gradient(low = 'white', high = 'red',
+                        name = "Spearman\nCorrelation") +
+    geom_point(aes(Var1, Var2, alpha = top3),
+               size = 1.5, shape = 19, stroke  = 0) +
+    scale_alpha_manual(values = c(1, 0.5, 0.25), 
+                       breaks = c(1, 2, 3),
+                       name = "top3", na.value = 0) +
+    coord_fixed(ratio = 1) +
+    xlab("reference") +
+    ylab("query") +
+    labs(caption = "For each celltype in query, black points represent top 3 celltypes from reference with highest correlation.",
+         title = paste0(query, " vs. ", reference)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, size = 8, 
+                                     hjust=1, vjust = 0.5),
+          axis.text.y = element_text(size=8),
+          axis.ticks.length = unit(0.15, units = c('lines')),
+          legend.title = element_text(size = 10),
+          axis.title = element_text(size = 8),
+          plot.caption = element_text(size = 7),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          legend.key.size = unit(0.8, units = c('lines')))
+  
+  return(p)
+}
+
+```
+
+```{r fig.asp=0.9}
+## Annotation plots
+anno.vento <- clustAnnoPlot(dat = dat, query = "clust", reference = "vento")
+cowplot::ggsave2(anno.vento, device = "pdf", width = 7.5, height = 6.5, units = "in",
+                 filename = "../results/02_annotation/plots/annotation-by-correlation_ref-vento.pdf")
+print(anno.vento)
+```
+```{r fig.asp=0.9, fig.width=7}
+## Annotation plots
+anno.surya <- clustAnnoPlot(dat = dat, query = "clust", reference = "surya")
+cowplot::ggsave2(anno.surya, device = "pdf", width = 7.5, height = 6.5, units = "in",
+                 filename = "../results/02_annotation/plots/annotation-by-correlation_ref-surya.pdf")
+print(anno.surya)
+```
+
+```{r fig.asp=0.9}
+## Annotation plots
+anno.pavli <- clustAnnoPlot(dat = dat, query = "clust", reference = "pavli")
+cowplot::ggsave2(anno.pavli, device = "pdf", width = 7, height = 6, units = "in",
+                 filename = "../results/02_annotation/plots/annotation-by-correlation_ref-pavli.pdf")
+print(anno.pavli)
+```
+
+## Top matches
+```{r}
+topmatch %>% knitr::kable(caption = "Top 3 matches against all reference datasets.")
+
+```
+
+
+# Session Info
+```{r}
+sessionInfo()
+```
+
+# References
+
