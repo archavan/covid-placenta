@@ -215,6 +215,100 @@ topmatch %>% knitr::kable(caption = "Top 3 matches against all reference dataset
 
 ```
 
+## Labels for clusters
+We need to create consistent labels for all cell types that we identify. Below is a `list` I created in which the top level objects are labels we will give to the cell types, within which contained are lists of corresponding labels from `vento` and `surya`. These are tentative labels. After the first pass, when we go through the clusters with a fine-toothed comb, we can modify them further. For example, if we have multiple clusters labeled as `dec.Mac` (decidual macrophages), and if those clusters are distinct, we can then break up this label into `dec.Mac1` and `dec.Mac2`. 
+
+```{r}
+labs <- list("dec.DSC"    = list("vento.lab" = c("dS1", "dS2", "dS3"),
+                                 "surya.lab" = c("dec.DSC", "dec.FB1", "dec.FB2")),
+             "dec.DC"     = list("vento.lab" = c("DC1", "DC2"),
+                                 "surya.lab" = c("dec.DC1", "dec.DC2")),
+             "dec.Mac"    = list("vento.lab" = c("dM1", "dM2", "dM3"),
+                                 "surya.lab" = c("dec.MAC")),
+             "dec.NK"     = list("vento.lab" = c("dNK.p", "dNK1", "dNK2", "dNK3", "NK.CD16neg", "NK.CD16pos"),
+                                 "surya.lab" = c("dec.NK1", "dec.NK2")),
+             "dec.SMC"    = list("vento.lab" = c("dP1", "dP2"),
+                                 "surya.lab" = c("dec.SMC")),
+             "dec.Endo"   = list("vento.lab" = c("Endo.m"),
+                                 "surya.lab" = c("dec.VEC")),
+             "dec.Epi"    = list("vento.lab" = c("Epi1", "Epi2"),
+                                 "surya.lab" = c("dec.EEC")),
+             "dec.Tcell"  = list("vento.lab" = c("Tcells"),
+                                 "surya.lab" = c("dec.TC")),
+             "vil.Endo"   = list("vento.lab" = c("Endo.f"),
+                                 "surya.lab" = c("vil.VEC")),
+             "vil.EVT"    = list("vento.lab" = c("EVT"),
+                                 "surya.lab" = c("vil.EVT")),
+             "vil.FB"     = list("vento.lab" = c("fFB1", "fFB2"),
+                                 "surya.lab" = c("vil.FB1", "vil.FB2", "vil.FB3")),
+             "vil.Hofb"   = list("vento.lab" = c("HB"),
+                                 "surya.lab" = c("vil.HC")),
+             "vil.SCT"    = list("vento.lab" = c("SCT"),
+                                 "surya.lab" = c("vil.SCT")),
+             "vil.VCT"    = list("vento.lab" = c("VCT"),
+                                 "surya.lab" = c("vil.VCT")),
+             "unk.Gran"   = list("vento.lab" = c("Granulocytes"),
+                                 "surya.lab" = c()),
+             "unk.ILC"    = list("vento.lab" = c("ILC3"),
+                                 "surya.lab" = c()),
+             "unk.Mono"   = list("vento.lab" = c("MO"),
+                                 "surya.lab" = c()),
+             "unk.Plasma" = list("vento.lab" = c("Plasma"),
+                                 "surya.lab" = c()),
+             "unk.EB"     = list("vento.lab" = c(),
+                                 "surya.lab" = c("vil.EB")),
+             "unk.Endo.L" = list("vento.lab" = c("Endo.L"),
+                                 "surya.lab" = c("dec.LEC"))
+)
+
+```
+
+## Matches consistent between reference datasets
+The following clusters have consistent top1 match between `vento` and `surya` references, i.e. they correspond to the same cell type category. The `pavli` reference is too unresolved to be used diagnostically, so we will ignore it for now. For some cell types it is confirmatory, though, e.g. cluster_00 corresponds to DSC in all three references. 
+
+```{r}
+# find out which clusters are consistent.
+# If vento.top1 and surya.top1 are found in the same item in the labs list, the mapping is consistent.
+consistent <- c(NA)
+for(i in 1:nrow(topmatch)){
+  consistent[i] <- grep(topmatch$vento.top1[i], labs) == grep(topmatch$surya.top1[i], labs)
+}
+
+# subset to include consistent set
+topmatch.cons <- topmatch %>% 
+  filter(consistent) %>% 
+  select(cluster, vento.top1, surya.top1)
+
+# add our tentative labels to the clusters
+for(i in 1:nrow(topmatch.cons)){
+  topmatch.cons$label[i] <- names(labs)[grep(topmatch.cons$vento.top1[i], labs)]
+}
+
+# print
+topmatch.cons[order(topmatch.cons$label), ] %>% knitr::kable()
+```
+
+## Ambiguous clusters
+The top1 matches for some clusters with `vento` and `surya` are not the same. The are the clusters that will require a more detailed look to determine their identify. 
+
+```{r}
+# subset for ambiguous clusters
+topmatch.ambig <- topmatch %>% 
+  filter(!consistent) %>% 
+  select(cluster, vento.top1, surya.top1)
+
+# add our labels.
+for(i in 1:nrow(topmatch.ambig)){
+  topmatch.ambig$label[i] <- paste0(
+    names(labs)[grep(topmatch.ambig$vento.top1[i], labs)],
+    " or ",
+    names(labs)[grep(topmatch.ambig$surya.top1[i], labs)]
+    )
+}
+
+# print
+topmatch.ambig[order(topmatch.ambig$label), ] %>% knitr::kable()
+```
 
 # Session Info
 ```{r}
