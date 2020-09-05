@@ -15,6 +15,10 @@ Last edited: `r format(Sys.time())`
 ```{r message=FALSE, warning=FALSE}
 ### packages
 library(tidyverse)
+library(Seurat)
+library(kableExtra)
+library(patchwork)
+library(ggthemes)
 ```
 
 We can take a first pass at annotating the clusters from our 10x data by comparing them to the reference dataset that we put together. This was done by compiling celltype-averaged expression values from the following single cell RNA-seq studies: [@pavlicev_single-cell_2017; @vento-tormo_single-cell_2018; @suryawanshi_single-cell_2018]. 
@@ -28,6 +32,14 @@ plac <- read.csv("../info/from-alice/Previous Analysis/Genes by Cluster/placenta
 
 # read reference datasets
 ref <- read.csv("../results/01_reference-atlas/vento-surya-pavli_joined.csv", stringsAsFactors = FALSE)
+```
+
+## Samples
+This is the sample information sent by Alice. Not sure about the INP id for `AL09` and `AL10`. The library for `INP188` villi (associated with `AL07`) was problematic, so is not used.  
+
+```{r}
+sample.info <- read.delim("../info/from-alice/sample_info.tsv", stringsAsFactors = FALSE)
+sample.info %>% kable(caption = "Sample information") %>% kable_styling(full_width = FALSE)
 ```
 
 ## Get data in shape
@@ -309,6 +321,93 @@ for(i in 1:nrow(topmatch.ambig)){
 # print
 topmatch.ambig[order(topmatch.ambig$label), ] %>% knitr::kable()
 ```
+
+# Annotation refinement
+The annotations we have so far are only a starting point. Now we can look at each annotation more carefully to make sure that everything makes sense.
+
+## Sample contribution to clusters
+One of the ways in which we can refine the clusters further is by knowing which tissue that sample arises from. For example, if a cluster has macrophage gene signature and if most cells in that cluster come from villi samples, we can further narrow down the identity of the cluster to Hofbauer cells. We can do this by simply counting for each cluster how many cells come from decidua vs villi and by calculating the percentage. 
+
+For this we need to read the `Seurat`-processed (by Eric) data sent by Alice.  
+
+```{r}
+plac <- readRDS("../info/from-alice/placenta.rds")
+
+head(plac@meta.data)
+```
+The `orig.ident` column in the metadata represents the sample IDs from the sample info table above. We just have rename them to left-pad the numbers for consistency.  
+
+```{r}
+# left pad orig.idents
+plac@meta.data$orig.ident <- gsub("(AL)(\\d)$", "\\10\\2", plac@meta.data$orig.ident)
+
+# add additional metadata (covid status, tissue)
+plac@meta.data$covid <- sample.info$covid[match(x = plac@meta.data$orig.ident, 
+                                                table = sample.info$sample_id)]
+plac@meta.data$tissue <- sample.info$tissue[match(x = plac@meta.data$orig.ident,
+                                                  table = sample.info$sample_id)]
+
+# rename clusters for consistency
+plac$seurat_clusters <- paste0("clust_", plac$seurat_clusters)
+plac$seurat_clusters <- gsub("(clust_)(\\d$)", "\\10\\2", as.character(plac$seurat_clusters)) # left pad
+plac$seurat_clusters <- factor(plac$seurat_clusters, levels = paste0("clust_", c("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", 10:34)))
+```
+
+```{r fig.asp=1.2, fig.width=6.5}
+# count cells in each cluster by tissue of origin
+bytissue <- table(plac$tissue, plac$seurat_clusters) %>% 
+  as.data.frame() %>% 
+  rename(tissue = Var1, cluster = Var2, frequency = Freq)
+
+# calculate fraction
+for(i in 1:nrow(bytissue)){
+  bytissue$fraction[i] <- bytissue$frequency[i]/
+    sum(bytissue$frequency[bytissue$cluster == bytissue$cluster[i]])
+}
+
+# plot
+p.cells <- ggplot(data = bytissue, aes(x = frequency, y = cluster)) +
+  geom_bar(aes(fill = tissue), stat = "identity", position = "stack") +
+  ggtitle("Number of cells")
+
+p.frac <- ggplot(data = bytissue, aes(x = fraction, y = cluster)) +
+  geom_bar(aes(fill = tissue), stat = "identity", position = "stack") +
+  ggtitle("Fraction of cells")
+
+p.cells + p.frac + plot_layout(guides = "collect", nrow = 2) +
+  plot_annotation(caption = "Sample contribution to clusters") &
+  coord_flip() &
+  scale_fill_tableau(palette = "Classic 10 Medium") &
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(size = 0.25),
+        plot.title = element_text(size = 10),
+        axis.text.x = element_text(angle = 90, vjust = 0.5))
+  
+
+```
+Following clusters have more than 75% cells coming from the same tissue of origin. 
+
+```{r}
+bytissue[, c("cluster", "tissue", "fraction")] %>% 
+  pivot_wider(names_from = "tissue", values_from = "fraction") %>% 
+  filter(decidua > 0.75 | villi > 0.75) %>% 
+  kable(digits = 2, row.names = FALSE, 
+        caption = "Clusters with more than 75% cells from one tissue") %>%
+  kable_styling(full_width = FALSE)
+```
+
+Following clusters have ambiguous origin, i.e. they contain cells from decidua and villi samples. 
+
+```{r}
+bytissue[, c("cluster", "tissue", "fraction")] %>% 
+  pivot_wider(names_from = "tissue", values_from = "fraction") %>% 
+  filter(decidua < 0.75 & villi < 0.75) %>% 
+  kable(digits = 2, row.names = FALSE, 
+        caption = "Clusters with cells from both tissues") %>%
+  kable_styling(full_width = FALSE)
+```
+
 
 # Session Info
 ```{r}
