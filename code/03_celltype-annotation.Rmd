@@ -448,6 +448,21 @@ bytissue[, c("cluster", "tissue", "fraction")] %>%
 This doesn't necessarily clarify too many things. There are many clusters that have over 3/4th of the cells coming from the same tissue, but often not the tissue you expect. For example clusters 16 and 17 are either villous or syncytial trophoblast cells but they are coming mostly from decidua samples. You expect that for cluster 13, which is extravillous trophoblast but not for the other types. At least in the species that I have worked with, it is often difficult to separate the fetal tissue from maternal tissue. So this mixed result could be a result of that difficulty. It looks like we can use this a rough guide, but we can't necessarily rely of this analysis, i.e. the marker gene should take precedence over tissue of origin in cell type id because the latter is experimentally (and as a consequence, analytically) messy to disentangle.  
 
 ## Marker genes
+### Identify marker genes 
+I ran `Seurat::findAllMarkers` on this data using the `SCT` assay. This function outputs a list of marker genes for each cluster compared to all other cells in the data. This takes a while (hours) to run, so I ran it on the cluster and saved the results to a `.csv`. See the `code` directory for full code, and see below for the function call. 
+
+```{r echo=TRUE, eval=FALSE}
+# set default assay to SCT
+DefaultAssay(object = plac) <- "SCT"
+
+# find markers for all clusters
+markers <- FindAllMarkers(object = plac, 
+                          only.pos = TRUE,
+                          logfc.threshold = 0.25)  
+
+# write.csv
+write.csv(markers, "/home/arc78/scratch60/covid-placenta/markers_sct.csv", row.names = FALSE)
+```
 
 ```{r}
 markers <- read.csv("../results/02_annotation/files/markers_sct.csv")
@@ -461,24 +476,46 @@ markers$cluster <- factor(markers$cluster, levels = unique(markers$cluster))
 markers <- split.data.frame(markers, markers$cluster)
 ```
 
+### Plot marker genes
+We will plot top 50 marker genes for all clusters and save the plot to pdf. 
+```{r}
+# plotting function
+DimPlot2 <- function(object = "seur", assay = "SCT", features, title, ...) {
+  p <- DotPlot(seur, 
+               assay = "SCT",
+               features = features, 
+               dot.min = 0.05, dot.scale = 4) +
+    coord_flip() +
+    labs(caption = paste0(assay, " normalized expression"), title = title) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+          panel.grid = element_blank())
+  
+  return(p)
+}
+```
 
 ```{r fig.asp=1}
+top50marker.plots <- list()
+for(i in names(markers)) {
+  if(nrow(markers[[i]]) > 50)
+    features <- markers[[i]]$gene[1:50]
+  if(nrow(markers[[i]]) < 50)
+    features <- markers[[i]]$gene
 
-i <- "clust_00"
-
-plt.genes <- markers[[i]]$gene[1:50]
-
-DotPlot(seur, 
-        assay = "SCT",
-        features = plt.genes, 
-        dot.min = 0.05, dot.scale = 4) +
-  coord_flip() +
-  labs(caption = "sctransform normalized expression", title = i) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-        panel.grid = element_blank())
-
+  top50marker.plots[[i]] <- DimPlot2(features = features, title = i)
+         
+  cowplot::ggsave2(top50marker.plots[[i]], 
+                   filename = paste0("../results/02_annotation/plots/top50markers_dotplot_", i, ".pdf"),
+                   width = 7.5, height = 7.5, units = "in")
+}
 ```
+
+## Cluster-wise assessment
+With the marker gene plots we have made, we can examine the top marker genes in each cluster to manually confirm or adjust the annotation of each cluster.
+
+### Cluster 0 and related clusters
+
 
 # Session Info
 ```{r}
