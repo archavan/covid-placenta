@@ -445,6 +445,8 @@ bytissue[, c("cluster", "tissue", "fraction")] %>%
   kable_styling(full_width = FALSE)
 ```
 
+This doesn't necessarily clarify too many things. There are many clusters that have over 3/4th of the cells coming from the same tissue, but often not the tissue you expect. For example clusters 16 and 17 are either villous or syncytial trophoblast cells but they are coming mostly from decidua samples. You expect that for cluster 13, which is extravillous trophoblast but not for the other types. At least in the species that I have worked with, it is often difficult to separate the fetal tissue from maternal tissue. So this mixed result could be a result of that difficulty. It looks like we can use this a rough guide, but we can't necessarily rely of this analysis, i.e. the marker gene should take precedence over tissue of origin in cell type id because the latter is experimentally (and as a consequence, analytically) messy to disentangle.  
+
 ## Marker genes
 
 ```{r}
