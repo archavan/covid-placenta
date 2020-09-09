@@ -24,6 +24,10 @@ library(kableExtra)
 # plotting
 library(patchwork)
 library(ggthemes)
+
+# go enrichment
+library(clusterProfiler)
+library(org.Hs.eg.db)
 ```
 
 We can take a first pass at annotating the clusters from our 10x data by comparing them to the reference dataset that we put together. This was done by compiling celltype-averaged expression values from the following single cell RNA-seq studies: [@pavlicev_single-cell_2017; @vento-tormo_single-cell_2018; @suryawanshi_single-cell_2018]. 
@@ -104,7 +108,7 @@ Before moving to annotating clusters by comparison with the reference dataset, f
 ## Correlation matrix
 ```{r fig.asp=0.7}
 # build correlation matrix from expression data
-cor.matrix <- cor(plac %>% select(starts_with("clust")), method = 'spearman')
+cor.matrix <- cor(plac %>% dplyr::select(starts_with("clust")), method = 'spearman')
 
 # reorder correlation matrix based on clustering
 dd <- as.dist((1 - cor.matrix)) 
@@ -141,7 +145,7 @@ print(p)
 ## Heirarchical clustering
 ```{r}
 # build correlation matrix from expression data
-cor.matrix <- cor(plac %>% select(starts_with("clust")), method = 'spearman')
+cor.matrix <- cor(plac %>% dplyr::select(starts_with("clust")), method = 'spearman')
 
 # reorder correlation matrix based on clustering
 dd <- as.dist((1 - cor.matrix)) 
@@ -351,7 +355,7 @@ for(i in 1:nrow(topmatch)){
 # subset to include consistent set
 topmatch.cons <- topmatch %>% 
   filter(consistent) %>% 
-  select(cluster, vento.top1, surya.top1)
+  dplyr::select(cluster, vento.top1, surya.top1)
 
 # add our tentative labels to the clusters
 for(i in 1:nrow(topmatch.cons)){
@@ -369,7 +373,7 @@ The top1 matches for some clusters with `vento` and `surya` are not the same. Th
 # subset for ambiguous clusters
 topmatch.ambig <- topmatch %>% 
   filter(!consistent) %>% 
-  select(cluster, vento.top1, surya.top1)
+  dplyr::select(cluster, vento.top1, surya.top1)
 
 # add our labels.
 for(i in 1:nrow(topmatch.ambig)){
@@ -394,7 +398,7 @@ One of the ways in which we can refine the clusters further is by knowing which 
 # count cells in each cluster by tissue of origin
 bytissue <- table(seur$tissue, seur$seurat_clusters) %>% 
   as.data.frame() %>% 
-  rename(tissue = Var1, cluster = Var2, frequency = Freq)
+  dplyr::rename(tissue = Var1, cluster = Var2, frequency = Freq)
 
 # calculate fraction
 for(i in 1:nrow(bytissue)){
@@ -480,7 +484,7 @@ markers <- split.data.frame(markers, markers$cluster)
 We will plot top 50 marker genes for all clusters and save the plot to pdf. 
 ```{r}
 # plotting function
-DimPlot2 <- function(object = "seur", assay = "SCT", features, title, ...) {
+DotPlot2 <- function(object = "seur", assay = "SCT", features, title, ...) {
   p <- DotPlot(seur, 
                assay = "SCT",
                features = features, 
@@ -503,7 +507,7 @@ for(i in names(markers)) {
   if(nrow(markers[[i]]) < 50)
     features <- markers[[i]]$gene
 
-  top50marker.plots[[i]] <- DimPlot2(features = features, title = i)
+  top50marker.plots[[i]] <- DotPlot2(features = features, title = i)
          
   cowplot::ggsave2(top50marker.plots[[i]], 
                    filename = paste0("../results/02_annotation/plots/top50markers_dotplot_", i, ".pdf"),
@@ -511,10 +515,477 @@ for(i in names(markers)) {
 }
 ```
 
-## Cluster-wise assessment
+# Manual annotation
 With the marker gene plots we have made, we can examine the top marker genes in each cluster to manually confirm or adjust the annotation of each cluster.
 
-### Cluster 0 and related clusters
+Let's make a dataframe in which to keep track of the assignments.
+
+```{r}
+annotation <- data.frame(
+  cluster = unique(seur$seurat_clusters) %>% sort(),
+  annotation = NA,
+  notes = NA
+)
+```
+
+For each set of marker genes, we can also perform a number of manual checks to assess cell type annotation.  
+
+First is GO enrichment using `clusterProfile` package, for which below is a function for quickly looking at top 10 enriched GO categories.
+```{r}
+# function for GO enrichment
+# 1. for a given cluster, prints n.print.rows top enriched GO terms
+# 2. Can exclude ribosomal genes (default) because they dominate some GO enrichments
+enrichGO2 <- function(clust, ngenes = 100, include.ribo = FALSE, n.print.rows = 10, ...) {
+  
+  ids.bitr <- bitr(markers[[clust]]$gene[1:ngenes], 
+                fromType = "SYMBOL", toType = c("ENTREZID", "SYMBOL"), 
+                OrgDb = "org.Hs.eg.db")
+    
+  if(include.ribo == FALSE)
+    features <- ids.bitr$ENTREZID[!(grepl("RP[SL]", ids.bitr$SYMBOL))]
+  if(include.ribo == TRUE)
+    features <- ids.bitr$ENTREZID
+
+  ego <- enrichGO(
+    gene          = features,    
+    OrgDb         = org.Hs.eg.db,
+    ont           = "BP",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.01, # default 0.01
+    qvalueCutoff  = 0.05, # default 0.05
+    readable = TRUE)
+  
+  dftoprint <- clusterProfiler::simplify(ego)@result[1:n.print.rows, c(2,8)]
+  rownames(dftoprint) <- NULL
+  
+  return(dftoprint)
+}
+```
+
+We can also check if the cluster is enriched is genes that are labeled as markers genes for a cell type by other studies. [@vento-tormo_single-cell_2018] have provided top 30 marker genes for all cell types identified by them.
+
+```{r message=FALSE}
+# read top 30 markers from vento-tormo et al
+markers.vento <- readxl::read_excel("../info/from-papers/vento-tormo_2018/41586_2018_698_MOESM1_ESM/Supplementary Table 2.xlsx")
+
+# rename columns
+markers.vento <- dplyr::rename(markers.vento,
+                               VCT_1 = VCT...2,
+                               Tcells_1 = `T cells...5`,
+                               Tcells_2 = `T cells...9`,
+                               VCT_2 = `VCT...10`,
+                               Tcells_3 = `T cells...11`,
+                               FB_1 = F1,
+                               EVT_1 = `EVT...14`,
+                               Tcells_4 = `T cells...15`,
+                               EVT_2 = `EVT...16`,
+                               NKCD16pos = `Blood NK CD16+`,
+                               MO_1 = `MO...22`,
+                               MO_2 = `MO...27`,
+                               NKCD16neg = `Blood NK CD16-`,
+                               FB2 = F2,
+                               Endo.m = `Endo (m)`,
+                               Endo.L = `Endo L`,
+                               Endo.f = `Endo (f)` 
+)
+
+# remove ensembl ids
+markers.vento <- apply(X = markers.vento, MARGIN = 2, FUN = function(x) gsub("_ENSG\\d+", "", x)) %>% 
+  as.data.frame()
+```
+
+[@suryawanshi_single-cell_2018] have also provided a list of top30 marker genes in the supplementary data. 
+```{r}
+markers.surya.vil <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S3.xlsx", sheet = "Villi", range = "A1:G271", trim_ws = TRUE)
+markers.surya.dec <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S3.xlsx", sheet = "Deciuda", range = "A1:G331", trim_ws = TRUE)
+
+markers.surya.vil <- dplyr::rename(markers.surya.vil, cluster = `cell type`)
+
+markers.surya.vil$cluster <- paste0("vil.", markers.surya.vil$cluster)
+markers.surya.dec$`cluster` <- paste0("dec.", markers.surya.dec$`cluster`)
+
+markers.surya <- rbind(markers.surya.vil, markers.surya.dec)
+```
+
+
+## Clusters 0 and 18
+### Notes
+1. Clusters 0 and 18 highly correlated with each other and most similar to each other than to other clusters. 
+2. Both are consistently similar to the decidual stromal cells in both vento and surya datasets. 
+3. The marker genes include Prolactin, IGFBP1 etc, which are typical of decidual stromal cells. 
+4. These two clusters also arise unabiguously from the decidua samples rather than villi samples.
+
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_00", "clust_18")] <- "dec.DSC"
+
+annotation[annotation$cluster %in% paste0("clust_", c("00", "18")), ]
+```
+
+### Marker genes plots
+```{r fig.asp=1}
+top50marker.plots[["clust_00"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_18"]]
+```
+
+### Go anrichment
+```{r}
+enrichGO2("clust_00")
+```
+
+### Vento markers for DSC
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$dS3, title = "vento: dS3")
+```
+
+### Surya markers for DSC
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.DSC"], title = "surya markers: DSC")
+```
+
+## Clusters 4 and 21
+### Notes
+
+1. Clusters 4 and 21 are highly correlated. 
+2. They consistently get assigned as decidual endothelial cells by both vento and surya datasets.
+3. More than 75% of the cells in both of these clusters come from the decidua samples.
+4. Markers genes of both clusters are enriched in GO categories related to epithelium development, endothelium development etc. 
+5. But these two clusters are not as alike as clusters 0 and 18. They are different in terms of their expression of many endothelium related genes like CD34, PROX1, VWF, SPARCL. Cluster 21 looks more like "typical" endothelial cells. Cluster 4 has low expression of many typical endothelial genes. 
+6. Cluster 4 has higher expression of some lymphatic endothelial cells: PROX1, LYVE1. Many genes from the list of surya marker genes for dec.LEC are expressed in cluster 4. This suggests that Cluster 4 may be lymphatic endothelial cells and cluster 21 may be endothelial cells. 
+
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_04")] <- "dec.Endo.L"
+annotation$annotation[annotation$cluster %in% c("clust_21")] <- "dec.Endo"
+
+annotation[annotation$cluster %in% paste0("clust_", c("04", "21")), ]
+```
+
+### Marker gene plots
+```{r, fig.asp=1}
+top50marker.plots[["clust_04"]]
+```
+
+```{r, fig.asp=1}
+top50marker.plots[["clust_21"]]
+```
+
+### GO enrichment
+```{r}
+enrichGO2("clust_04")
+```
+
+```{r}
+enrichGO2("clust_21")
+```
+
+### Vento markers for endothelial cells
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$Endo.m, title = "vento: Endo.m")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$Endo.f, title = "vento: Endo.f")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$Endo.L, title = "vento: Endo.L")
+```
+
+### Surya markers for endothelial cells
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.VEC"], title = "surya markers: vil.VEC")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.VEC"], title = "surya markers: dec.VEC")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.LEC"], title = "surya markers: dec.LEC")
+```
+
+## Cluster 13
+### Notes
+
+1. This cluster is unique in its expression of HLA-G, typical of extravillous trophoblast. 
+2. Several other genes often enriched in EVT are also enriched in this cluster: FN1, PAPPA2, DIO2, etc.
+3. top 30 markers associated with EVT_2 from vento dataset are also highly and specifically expressed in this cluster. 
+4. It is consistently assigned to be EVT based on vento, surya, and pavli datasets. 
+
+Annotation:  
+**Cluster 13: Extravillous trophoblast (vil.EVT)**
+
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_13")] <- "vil.EVT"
+
+annotation[annotation$cluster %in% c("clust_13"), ]
+```
+
+### Marker genes plot
+```{r fig.asp=1}
+top50marker.plots[["clust_13"]]
+```
+
+### GO enrichment
+```{r message=FALSE}
+enrichGO2("clust_13")
+```
+
+### Vento markers for EVT
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$EVT_1, title = "vento markers: EVT_1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$EVT_2, title = "vento markers: EVT_2")
+```
+
+### Surya marker genes for EVT
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.EVT"], title = "surya markers: vil.EVT")
+```
+
+## Other trophoblast clusters (16, 17, 23, 24, 25, 29)
+### Notes
+For more information on expression patterns and markers of different trophoblast types, see [@liu_single-cell_2018].
+
+1. In addition to cluster 13 (EVT), there are 6 other clusters that are likely trophoblast cell types (they express KRT7 and are related clusters). These 6 clusters are organized into two correlated blocks (see "correlations section above"): (16, 17, 25) and (23, 29, 24) of which the former are likely VCT and the latter SCT according to correlation-based annotation. 
+2. Cluster 29 appears to be SCT given its expression of CGA, GDF15, ERVFRD-1 (Syncytin 2) genes. For some reason GO enrichment didn't work for markers of cluster 29, but it does consistently express SCT markers from vento and surya.
+3. Cluster 24 doesn't express ERVFRD-1 much, but it does express most other telltale genes of SCT: CSH1, CSH2, CGA, CSHL1, many PSG genes, GH2, PGF, GDF15, etc. And it is not enriched for expression of VCT markers from vento and surya. It's enriched GO terms have to do with hormone production and signaling as expected for SCT. Thus, this is most likely an SCT cluster. 
+4. Clusters 16 and 17 don't express many markers of SCT, but do express many vento and surya markers of VCT: PAGE4, PEG10, XAGE3, etc.
+5. Cluster 25 has VCT markers as well as a strong signature of cell division genes. This shows up in the GO enrichment as well, where most enriched GO terms are "nuclear division", "chromosome segregation", "cell cycle G1/S phase transition" etc. This is likely a cluster of proliferating VCT cells. Incidentally both [@vento-tormo_single-cell_2018] and [@liu_single-cell_2018] have a separate population of VCT with a cell cycle gene signature (VCT_2 in vento). 
+6. Cluster 23 is most similar to SCT of vento but VCT of surya. Indeed this cluster has expression of marker genes for both VCT and SCT (see plots). It expresses PAGE4, PEG10 etc, but also expresses syncytin gene ERVW-1. This could represent a group of cytotrophoblast cells that are in the process of differentiating to sycnytial trophoblast. We will label it as a VCT type. 
+
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_16")] <- "vil.VCT_1"
+annotation$annotation[annotation$cluster %in% c("clust_17")] <- "vil.VCT_2"
+annotation$annotation[annotation$cluster %in% c("clust_23")] <- "vil.VCT_3"
+annotation$annotation[annotation$cluster %in% c("clust_25")] <- "vil.VCT_4"
+annotation$annotation[annotation$cluster %in% c("clust_24")] <- "vil.SCT_1"
+annotation$annotation[annotation$cluster %in% c("clust_29")] <- "vil.SCT_2"
+
+annotation$notes[annotation$cluster %in% c("clust_25")] <- "proliferating"
+
+annotation[annotation$cluster %in% paste0("clust_", c("16", "17", "23", "25", "24", "29")), ]
+```
+
+### Marker gene plots
+```{r fig.asp=1}
+top50marker.plots[["clust_16"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_17"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_25"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_23"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_24"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_29"]]
+```
+
+### GO enrichment
+```{r message=FALSE}
+enrichGO2("clust_16")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_17")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_25")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_23")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_24")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_29")
+```
+
+### Vento markers for VCT and SCT
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$VCT_1, title = "vento markers: VCT_1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$VCT_2, title = "vento markers: VCT_2")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$SCT, title = "vento markers: SCT")
+```
+
+### Surya markers for VCT and SCT
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.VCT"], title = "surya markers: vil.VCT")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.SCT"], title = "surya markers: vil.SCT")
+```
+
+### Pavli marker genes for VCT and SCT
+```{r fig.asp=0.4, warning=FALSE}
+DotPlot2(features = c("ADRB1", "PUF60", "SNORDA3A", "PRMT7", "E1F1AY", 
+                      "FXYD3", "GRAMD2", "INSL4", "ITGB8", "PAGE4",
+                      "SLC13A4", "SLC22A11"), 
+         title = "pavli markers: VCT_1")
+```
+
+
+```{r fig.asp=0.6, warning=FALSE}
+DotPlot2(features = c("XAGE3", "XAGE2", "SERINC5", "S100P", "RASA1",
+                      "MFAP5", "LIN28B", "KRT8", "KRT7", "INS-IGF2", "GCM1",
+                      "GATA3", "ERVW-1", "ERVFRD-1", "EGR1", "EFNA1", 
+                      "CYP19A1", "PHLDA2", "ACKR2"), 
+         title = "pavli markers: VCT_2")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = c("SEMA3B", "CSH2", "CSHL1", "FCGR2A", "GH2", "HBA1", 
+                      "HBA2", "HBB", "HBG1", "HBG2", "HLA-DMA", "HLA-DPA1",
+                      "HLA-DQB1", "HLA-DRA", "HLA-DRB1", "HPGDS", "CGB8",
+                      "LGALS14", "LYVE1", "NPIPB3", "CGB5", "PSG1", "PSG3", 
+                      "PSG6", "PSG9", "ZNF117", "ZNF91", "HIST2H2AB",
+                      "RAMP2", "MUC20"), 
+         title = "pavli markers: SCT")
+```
+
+### Liu et al markers for trophoblasts
+```{r fig.asp=0.5}
+DotPlot2(seur, features = c("GCM1", "CSH1", "KRT7", "TFAP2C", "GATA3", "CDH1", "EGFR", "HLA-G", "MMP2", "RRM2", "CCNB1", "CDK1", "ERVFRD-1", "SLC1A5", "PAGE4", "CGB"), title = "Genes from Liu et al 2018")
+```
+## Clusters 02, 06, 07, 15, 19, 33
+### Notes
+
+1. Most of these clusters represent some kind of fibroblast or a closely related cell type. Most clusters are enriched for GO terms related to ECM regulation. 
+2. Clusters 02 and 15 marker genes are also highly expressed in clusters 00 and 18. Cluster 15 has more than 75% cells coming from decidua samples, and cluster 02 has over 50% cells coming from decidua samples. Decidual stromal cells are known to be actually a few different populations. Even in Vento-tormo et al, they are labeled as dS1--3, of which dS3 are the canonical DSC with PRL and IGFBP1, while dS1 and dS2 are closely related to DSC and are derived from endometrial stromal fibroblasts. These things together suggest that clusters 02 and 15 are the non-PRL varieties of DSC. To distinguish them from DSC, we can call them decidual fibroblasts. 
+3. Marker genes of 06, 07, and 33 show highly correlated gene expressin, i.e. the markers on each of these clusters are also highly expressed in the other two clusters, suggesting that these three clusters a closely related cell populations. All three of these clusters are largely (over 75% of the cells) derived from villi samples, and they are fibroblast-like cells. Thus, these are likely villous fibroblasts.
+4. Cluster 19 is most similar to PV (perivascular) clusters from vento and SMC (smooth muscle cell) cluster from surya. Indeed, its markers include smooth muscle genes like MGP, MYH11, MYL9 etc, and enriched GO terms for this cluster include "muscle contraction" and "artery morphogenesis". Thus, this cluster is most likely of perivascular smooth muscle cells of decidual origin (over 75% cells from decidua samples). 
+
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_02")] <- "dec.FB_1"
+annotation$annotation[annotation$cluster %in% c("clust_15")] <- "dec.FB_2"
+annotation$annotation[annotation$cluster %in% c("clust_06")] <- "vil.FB_1"
+annotation$annotation[annotation$cluster %in% c("clust_07")] <- "vil.FB_2"
+annotation$annotation[annotation$cluster %in% c("clust_33")] <- "vil.FB_3"
+annotation$annotation[annotation$cluster %in% c("clust_19")] <- "dec.SMC"
+
+annotation[annotation$cluster %in% paste0("clust_", c("02", "15", "06", "07", "33", "19")), ]
+```
+
+### Marker gene plots
+```{r fig.asp=1}
+top50marker.plots[["clust_02"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_15"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_06"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_07"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_19"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_33"]]
+```
+
+### GO enrichment
+```{r message=FALSE}
+enrichGO2("clust_02")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_15")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_06")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_07")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_19")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_33")
+```
+
+### Vento markers
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$PV1, title = "vento markers: PV1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$PV2, title = "vento markers: PV2")
+```
+
+### Surya markers
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.FB1"], title = "surya markers: vil.FB1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.SMC"], title = "surya markers: dec.SMC")
+```
+
+## Cluster 20
+### Notes
+This is most likely a cluster of B cells. Most markers genes are related to B cells: many immunoglobulin gnees, SPIB, MS4A1, CD79A, CD79B, BANK1, etc. It also expresses many genes that are markers for Plasma cluster from vento dataset. GO enrichment also agrees. Even though about half the cells from the cluster come from decidua and villi each, the likely origin of B cells is maternal rather than fetal. 
+
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_20")] <- "dec.Bcells"
+
+annotation[annotation$cluster %in% paste0("clust_", c("20")), ]
+```
+
+### Marker genes plot
+```{r fig.asp=1}
+top50marker.plots[["clust_20"]]
+```
+
+### GO enrichment
+```{r message=FALSE}
+enrichGO2("clust_20")
+```
+
+### Vento markers
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$Plasma, title = "vento markers: Plasma")
+```
 
 
 # Session Info
