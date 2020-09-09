@@ -987,6 +987,119 @@ enrichGO2("clust_20")
 DotPlot2(features = markers.vento$Plasma, title = "vento markers: Plasma")
 ```
 
+## Other lymphocyte clusters: 05, 09, 10, 14, 30, 32
+### Notes
+For clues on marker genes for various types of lymphocytes see [@pizzolato_single-cell_2019].
+
+1. These are likely non-B lymphoid cells. 
+2. Clusters 09 and 32 are most similar to Tcells from both vento and surya. Given the expression of CD3 genes, that appears to be the correct assignment. 
+     + The clusters also express TRAC and TRBC1 (constant regions of TCR alpha and beta), making them alpha-beta T cells. 
+     + It's hard to tell if they are CD4 or CD8---both CD4 and CD8 genes are expressed by a small fraction of cells in both clusters, but CD8 genes expressed at a higher level. 
+     + GO enrichment for both include terms related to T cell differentiation, T cell activation etc. 
+     + These clusters contain cells from both decidua and villi samples, but it makes sense for T cells to be of maternal origin. 
+3. Cluster 05 is most similar to NK cells from vento and surya. But based on the lack of NKG7 and NCAM1 expression and expression of CD3 genes, TRAC, and TRBC1 this is likely a T cell cluster. One of its marker genes being GZMA and its overall similarity with NK cells suggest that this may be a cytotoxic T cell. Consistently, among its enriched GO terms are "T cell mediated cytotoxicity" and "Cell killing". This cluster mostly contains cells from decidua samples.
+4. Clusters 10, 14, and 30 are NK cells based on the expression of NKG7 and NCAM1. 
+     + These clusters are also express GZMA, GZMB, GNLY, PRF1, KLRB1, KLRC1, KLRD1. 
+     + Cluster 30 is enriched for cell cycle genes, so represents proliferating cells. Vento and surya datasets also have a cluster of proliferating NK cells (dNK.p in vento and NK2 in surya). +
+     + Cluster 30 in unambiguously of decidual sample origin. Clusters 10 and 14 are mixed but makes sense for them to be of maternal origin. 
+     
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_05")] <- "dec.Tcell_1"
+annotation$annotation[annotation$cluster %in% c("clust_09")] <- "dec.Tcell_2"
+annotation$annotation[annotation$cluster %in% c("clust_10")] <- "dec.NK_1"
+annotation$annotation[annotation$cluster %in% c("clust_14")] <- "dec.NK_2"
+annotation$annotation[annotation$cluster %in% c("clust_30")] <- "dec.NK_3"
+annotation$annotation[annotation$cluster %in% c("clust_32")] <- "dec.Tcell_3"
+
+annotation$notes[annotation$cluster %in% c("clust_05")] <- "cytotoxic"
+annotation$notes[annotation$cluster %in% c("clust_30")] <- "proliferating"
+
+
+annotation[annotation$cluster %in% paste0("clust_", c("05", "09", "10", "14", "30", "32")), ]
+```
+
+### Lymphocyte candidate genes
+```{r fig.asp=0.5}
+DotPlot2(features = c("NCAM1", "NKG7", "CD3D", "CD3G", "CD3E", "TRAC", "TRBC1", "TRGC2", "TRDC", "CD8A", "CD8B", "CD4"), title = "Lymphocyte candidate genes")
+```
+
+### Marker gene plots
+```{r fig.asp=1}
+top50marker.plots[["clust_05"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_09"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_10"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_14"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_30"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_32"]]
+```
+
+### GO enrichment
+```{r message=FALSE}
+enrichGO2("clust_05")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_09")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_10")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_14")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_30")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_32")
+```
+
+### Vento markers
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$Tcells_2, title = "vento markers: Tcells_2")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$Tcells_4, title = "vento markers: Tcells_4")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$dNK1, title = "vento markers: dNK1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$dNKp, title = "vento markers: dNKp")
+```
+
+
+### Surya markers
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.NK1"], title = "surya markers: dec.NK1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.NK2"], title = "surya markers: dec.NK2")
+```
 
 # Session Info
 ```{r}
