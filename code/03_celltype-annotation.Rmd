@@ -608,7 +608,9 @@ markers.surya <- rbind(markers.surya.vil, markers.surya.dec)
 ```
 
 
-## Clusters 0 and 18
+## DSC
+Clusters 0 and 18.
+
 ### Notes
 1. Clusters 0 and 18 highly correlated with each other and most similar to each other than to other clusters. 
 2. Both are consistently similar to the decidual stromal cells in both vento and surya datasets. 
@@ -635,17 +637,19 @@ top50marker.plots[["clust_18"]]
 enrichGO2("clust_00")
 ```
 
-### Vento markers for DSC
+### Vento markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.vento$dS3, title = "vento: dS3")
 ```
 
-### Surya markers for DSC
+### Surya markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.DSC"], title = "surya markers: DSC")
 ```
 
-## Clusters 4 and 21
+## Endothelial cells
+Clusters 4 and 21.
+
 ### Notes
 
 1. Clusters 4 and 21 are highly correlated. 
@@ -680,7 +684,7 @@ enrichGO2("clust_04")
 enrichGO2("clust_21")
 ```
 
-### Vento markers for endothelial cells
+### Vento markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.vento$Endo.m, title = "vento: Endo.m")
 ```
@@ -693,7 +697,7 @@ DotPlot2(features = markers.vento$Endo.f, title = "vento: Endo.f")
 DotPlot2(features = markers.vento$Endo.L, title = "vento: Endo.L")
 ```
 
-### Surya markers for endothelial cells
+### Surya markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.VEC"], title = "surya markers: vil.VEC")
 ```
@@ -706,7 +710,9 @@ DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.VEC"], titl
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.LEC"], title = "surya markers: dec.LEC")
 ```
 
-## Cluster 13
+## EVT
+Cluster 13. 
+
 ### Notes
 
 1. This cluster is unique in its expression of HLA-G, typical of extravillous trophoblast. 
@@ -733,7 +739,7 @@ top50marker.plots[["clust_13"]]
 enrichGO2("clust_13")
 ```
 
-### Vento markers for EVT
+### Vento markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.vento$EVT_1, title = "vento markers: EVT_1")
 ```
@@ -742,12 +748,14 @@ DotPlot2(features = markers.vento$EVT_1, title = "vento markers: EVT_1")
 DotPlot2(features = markers.vento$EVT_2, title = "vento markers: EVT_2")
 ```
 
-### Surya marker genes for EVT
+### Surya markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.EVT"], title = "surya markers: vil.EVT")
 ```
 
-## Other trophoblast clusters (16, 17, 23, 24, 25, 29)
+## VCT and SCT
+clusters 16, 17, 23, 24, 25, and 29.
+
 ### Notes
 For more information on expression patterns and markers of different trophoblast types, see [@liu_single-cell_2018].
 
@@ -821,7 +829,7 @@ enrichGO2("clust_24")
 enrichGO2("clust_29")
 ```
 
-### Vento markers for VCT and SCT
+### Vento markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.vento$VCT_1, title = "vento markers: VCT_1")
 ```
@@ -834,7 +842,7 @@ DotPlot2(features = markers.vento$VCT_2, title = "vento markers: VCT_2")
 DotPlot2(features = markers.vento$SCT, title = "vento markers: SCT")
 ```
 
-### Surya markers for VCT and SCT
+### Surya markers
 ```{r fig.asp=0.8, warning=FALSE}
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.VCT"], title = "surya markers: vil.VCT")
 ```
@@ -843,7 +851,7 @@ DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.VCT"], titl
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.SCT"], title = "surya markers: vil.SCT")
 ```
 
-### Pavli marker genes for VCT and SCT
+### Pavli markers
 ```{r fig.asp=0.4, warning=FALSE}
 DotPlot2(features = c("ADRB1", "PUF60", "SNORDA3A", "PRMT7", "E1F1AY", 
                       "FXYD3", "GRAMD2", "INSL4", "ITGB8", "PAGE4",
@@ -874,7 +882,9 @@ DotPlot2(features = c("SEMA3B", "CSH2", "CSHL1", "FCGR2A", "GH2", "HBA1",
 ```{r fig.asp=0.5}
 DotPlot2(seur, features = c("GCM1", "CSH1", "KRT7", "TFAP2C", "GATA3", "CDH1", "EGFR", "HLA-G", "MMP2", "RRM2", "CCNB1", "CDK1", "ERVFRD-1", "SLC1A5", "PAGE4", "CGB"), title = "Genes from Liu et al 2018")
 ```
-## Clusters 02, 06, 07, 15, 19, 33
+## Fibroblasts and SMC
+Clusters 02, 06, 07, 15, 19, and 33.
+
 ### Notes
 
 1. Most of these clusters represent some kind of fibroblast or a closely related cell type. Most clusters are enriched for GO terms related to ECM regulation. 
@@ -962,7 +972,9 @@ DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.FB1"], titl
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.SMC"], title = "surya markers: dec.SMC")
 ```
 
-## Cluster 20
+## B cells
+Cluster 20.
+
 ### Notes
 This is most likely a cluster of B cells. Most markers genes are related to B cells: many immunoglobulin gnees, SPIB, MS4A1, CD79A, CD79B, BANK1, etc. It also expresses many genes that are markers for Plasma cluster from vento dataset. GO enrichment also agrees. Even though about half the cells from the cluster come from decidua and villi each, the likely origin of B cells is maternal rather than fetal. 
 
@@ -987,7 +999,9 @@ enrichGO2("clust_20")
 DotPlot2(features = markers.vento$Plasma, title = "vento markers: Plasma")
 ```
 
-## Other lymphocyte clusters: 05, 09, 10, 14, 30, 32
+## Other lymphocytes
+Clusters  05, 09, 10, 14, 30, and 32.
+
 ### Notes
 For clues on marker genes for various types of lymphocytes see [@pizzolato_single-cell_2019].
 
