@@ -1,5 +1,5 @@
 ---
-title: "Annotation of clusters in 10x data"
+title: "Expression of DE genes"
 author: "Arun Chavan"
 output:
   html_notebook:
