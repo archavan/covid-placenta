@@ -1101,6 +1101,306 @@ DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.NK1"], titl
 DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.NK2"], title = "surya markers: dec.NK2")
 ```
 
+## Myeloid cells
+Clusters 01, 03, 08, 11, 12, 22, 26, 27, 28, 31, and 34.
+
+### Notes
+
+1. Clusters 01, 22, 31, 34, and 27 form a group in the hierarchical clustering above, and they all have most cells (more than 75%) coming from villi samples. 
+    + All five clusters are highly highly correlated with each other, especially clusters 01, 31, and 34. 
+    + All clusters express various macrophage genes: CD68, CD163, MRC1, MAF, C1QC, C1QA, FOLR2 etc; and more so clusters 01, 31, and 34. 
+    + Clusters 01 and 31 are most likely villous macrophages (i.e. Hofbauer cells), but the other cluster need more investigation. 
+    + Clusters 22 and 27, even though correlated with 01 and 34, have marker genes that are not that highly expressed in themselves but are in 01 and 34. Looking at the UMAP plot below, it's clear that both of these clusters are not as homogenous as the other. The cells are spread between the big myeloid blob and the big fibroblast blob. 
+    + However, these don't appear to be clusters of different types of cells. That is, fibroblast genes (COL3A1, COL3A3) and macrophage genes are coexpressed in the same cells in cluster 27 (see plot below). And macrophage genes are broadly expressed in cluster 22, even in cells that seem to be embedded with fibroblast cells. Clusters 22 and 27 might represent cell types that are macrophages but with certain fibroblast-like properties. 
+    + Looking at cluster 34 markers genes, it interestingly expresses many erythrocyte lineage genes (HBA1, HBA2, HBM, CD1, HBG1, CD235a/GYPA) but it also expresses macrophage genes like CSF1R, FOLR2, MRC1, CD163 etc. If we plot the expression of these genes on UMAP (plotting only clust_34, see below), we see that majority of the cells express macrophage genes, while the erythrocyte genes are expressed in a small number of cells (except HBG2), suggesting that this cluster is made of two cell types. Since majority of the cells in this cluster are macrophage cells, we will label it as such, but should the need arise in further analysis, we can subcluster it further to separate the two cell types out.
+2. Cluster 26 is most likely of erythrocytes (or some cell type from the erythrocyte lineage). 
+    + The surya dataset does contain what they call an erythroblast cluster, but in erythropoeisis is expected in the placenta in the first trimester. In our term samples, I am not sure if erythrocyte progenitors are expected to be present. 
+    + Marker genes, similarity with surya EB cluster, and GO enrichement (which include "erythrocyte development", "oxygen transport", etc) are all consistent with each other. 
+    + Most of the cells in this cluster come from villi samples, so fetal origin.
+3. Cluster 28 most likely is made of typical granulocytes. 
+    + It expresses the granulocyte marker gene CEACAM8, in addition to CEACAM6, ELANE, and MPO. 
+    + GO enrichment is consistent.
+    + All marker genes are consistent: LYZ, DEFA3, DEFA4, S100A8, NCF1, etc. 
+4. Cluster 11 and 12 are most likely APC.
+    + Of maternal origin. Cluster 12 mostly comes from decidua sample, cluster 11 has mixed contribution, in terms of its gene expression it's very similar to cluster 12. 
+    + Very similar to each other. Among vento cluster, most similarity to macrophage clusters. Among surya clusters, most similarity to maternal DC and maternal APC clusters.
+    + Expression of classical macrophage/DC markers like CD68, CD163. In addition most of the marker genes of this cluster have to do with antigen presentation. Many of them are MHC-II genes. 
+    + Not sure if they are macrophages or DCs, but to avoid committing to one conclusion over the other, we can just label them as APCs. 
+5. Clusters 3 and 8 are difficult.
+    + Low, if any, expression of CD68 and CD163, thus not quite macrophages. But at least cluster 8 is quite similar to macrophages in overall gene expression (see hierarchical clustering above).
+    + Low, if any, expression of HLA genes, thus not quite APCs.
+    + No expression of typical granulocyte markers: CEACAM8, CEACAM6, MPO, ELANE. But many markers of these clusters sound "granulocytic". This is evident in GO enrichment as well. In addition, cluster 3 is most similar to cluster 28 (see hierarchical clustering above) which is clearly a granulocyte cluster.
+    + Cluster 08 is most similar to the MO_1 and MO_2 clusters from vento. Cluster 3 had low similarity with any of the clusters from vento and surya. 
+    + Both clusters express MNDA, which is typically only expressed in cells in the monocyte-granulocyte lineage. 
+    + Both clusters express LYZ, S100A9, S100A8, which I think are also monocyte genes.
+    + These might be monocytes but they don't express CD14. 
+    + It's in fact possible to have CD14--ve monocyte, it turns out [@mukherjee_non-classical_2015]. See introduction of [@sampath_monocyte-subsets_2018], which summarizes observations from [@villani_single-cell_2017]. These papers point to non-CD14 monocyte populations. In fact most genes in the Mono_3 cluster of [@villani_single-cell_2017] are expressed in cluster 03, e.g. MXD1, VNN2, CXCR2.
+    + Overall it looks like clusters 3 and 8 are two types of monocytes. (at the very least they are from the monocyte-granulocyte lineage.) 
+    
+```{r}
+annotation$annotation[annotation$cluster %in% c("clust_01")] <- "vil.Hofb_1"
+annotation$annotation[annotation$cluster %in% c("clust_22")] <- "vil.Hofb_2"
+annotation$annotation[annotation$cluster %in% c("clust_27")] <- "vil.Hofb_3"
+annotation$annotation[annotation$cluster %in% c("clust_31")] <- "vil.Hofb_4"
+annotation$annotation[annotation$cluster %in% c("clust_34")] <- "vil.Hofb_5"
+
+annotation$annotation[annotation$cluster %in% c("clust_03")] <- "dec.Mono_1"
+annotation$annotation[annotation$cluster %in% c("clust_08")] <- "dec.Mono_2"
+annotation$annotation[annotation$cluster %in% c("clust_11")] <- "dec.APC_1"
+annotation$annotation[annotation$cluster %in% c("clust_12")] <- "dec.APC_2"
+annotation$annotation[annotation$cluster %in% c("clust_26")] <- "vil.Ery"
+annotation$annotation[annotation$cluster %in% c("clust_28")] <- "dec.Gran"
+
+annotation$notes[annotation$cluster %in% c("clust_27")] <- "also fibroblast signature"
+annotation$notes[annotation$cluster %in% c("clust_34")] <- "likely also contains erythro"
+
+annotation[annotation$cluster %in% paste0("clust_", 
+                                          c("01", "03", "08", "11", "12",
+                                            "22", "26", "27", "28", "31", "34")), ]
+```
+
+### Myeloid candidate genes
+```{r fig.asp=0.5}
+DotPlot2(features = c("PTPRC", # pan
+                      "CD33", "CD14", "CD68", "CD163", "CLEC10A", "HLA-DRA", # apc
+                      "CEACAM8", "CEACAM6", "MPO", "ELANE", # granulocytes
+                      "FCGR3A", # inflammatory monocytes?
+                      "GYPA" # erythro
+                      ), 
+         title = "Myeloid candidate genes")
+```
+
+### Hofb clusters on UMAP
+```{r fig.width=6}
+DimPlot(seur, 
+        cols = c(rep("Grey90", 30), "#aec7e8", "#ff9e4a", "#2ca02c", "#ed665d", "#9467bd"), 
+        order = (rev(c("clust_01", "clust_22", "clust_27", "clust_31", "clust_34")))) + 
+  theme_few() +
+  coord_fixed()
+```
+### clust_22 markers on UMAP
+```{r fig.asp=0.5}
+DefaultAssay(seur) <- "SCT"
+p <- FeaturePlot(seur, features = c("CD163", "CSF1R", "C1QA", "MRC1", "CD14", "FOLR2"), 
+                 cells = rownames(seur@meta.data)[seur@meta.data$seurat_clusters == "clust_22"],
+                 coord.fixed = TRUE, ncol = 3, combine = FALSE) 
+
+p[[1]] + p[[2]] + p[[3]] + p[[4]] + p[[5]] + p[[6]] + 
+  plot_layout(ncol = 3) +
+  plot_annotation(title = "clust_22") &
+  theme_bw() +
+  theme(panel.grid.major = element_line(size = 0.25),
+        panel.grid.minor = element_blank(),
+        legend.key.size = unit(0.75, "line"),
+        axis.title = element_text(size = 6),
+        plot.title = element_text(size = 10)) 
+```
+
+### clust_27 markers on UMAP
+```{r}
+DefaultAssay(seur) <- "SCT"
+p <- FeaturePlot(seur, features = c("COL3A1", "CD14", "MRC1", "LYVE1", "COL1A1"), cells = rownames(seur@meta.data)[seur@meta.data$seurat_clusters == "clust_27"],
+                 coord.fixed = TRUE, ncol = 3) 
+p[[1]] + p[[2]] + p[[3]] + p[[4]] + p[[5]] + 
+  plot_layout(ncol = 3) +
+  plot_annotation(title = "clust_27") &
+  theme_bw() +
+  theme(panel.grid.major = element_line(size = 0.25),
+        panel.grid.minor = element_blank(),
+        legend.key.size = unit(0.75, "line"),
+        axis.title = element_text(size = 6),
+        plot.title = element_text(size = 10)) 
+```
+
+### clust_34 markers on UMAP
+```{r}
+DefaultAssay(seur) <- "SCT"
+p <-  FeaturePlot(seur, 
+                  features = c("GYPA", "HBM", "HBG2", "HBG1", "ALAS2", "AHSP", 
+                               "MRC1", "CD163", "CSF1R"), 
+                  cells = rownames(seur@meta.data)[seur@meta.data$seurat_clusters == "clust_34"],
+                  coord.fixed = FALSE, ncol = 3)
+p[[1]] + p[[2]] + p[[3]] + p[[4]] + p[[5]] + p [[6]] + p[[7]] + p[[8]] + p[[9]] + 
+plot_layout(ncol = 3) +
+  plot_annotation(title = "clust_34") &
+  theme_bw() +
+  theme(panel.grid.major = element_line(size = 0.25),
+        panel.grid.minor = element_blank(),
+        legend.key.size = unit(0.75, "line"),
+        axis.title = element_text(size = 6),
+        plot.title = element_text(size = 10)) 
+```
+
+### Marker gene plots
+```{r fig.asp=1}
+top50marker.plots[["clust_01"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_03"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_08"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_11"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_12"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_22"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_26"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_27"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_28"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_31"]]
+```
+
+```{r fig.asp=1}
+top50marker.plots[["clust_34"]]
+```
+
+### GO enrichment
+```{r message=FALSE}
+enrichGO2("clust_01")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_03")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_08")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_11")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_12")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_22")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_26")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_27")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_28")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_31")
+```
+
+```{r message=FALSE}
+enrichGO2("clust_34")
+```
+
+### Vento markers
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$dM1, title = "vento markers: dM1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$dM2, title = "vento markers: dM2")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$HB, title = "vento markers: HB")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$M3, title = "vento markers: M3")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$MO_1, title = "vento markers: MO_1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$MO_2, title = "vento markers: MO_2")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$DC1, title = "vento markers: DC1")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.vento$DC2, title = "vento markers: DC2")
+```
+
+### Surya markers
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.HC"], title = "surya markers: vil.HC")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.EB"], title = "surya markers: vil.EB")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "dec.APC"], title = "surya markers: dec.APC")
+```
+
+```{r fig.asp=0.8, warning=FALSE}
+DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.HC"], title = "surya markers: vil.HC")
+```
+
+# Final annotations
+
+```{r}
+annotation %>% kable(caption = "Final annotations of all clusters") %>% kable_styling(full_width = FALSE)
+```
+## Add annotations to `Seurat` object
+```{r}
+seur@meta.data$annotation <- annotation$annotation[match(x = seur@meta.data$seurat_clusters,
+                                                         table = annotation$cluster)]
+
+Idents(seur) <- seur@meta.data$annotation
+
+# write seurat object
+saveRDS(seur, file = "../results/02_annotation/seurat-object_annotated.rds")
+```
+
+## Plots
+### UMAP
+```{r, fig.asp=1, fig.width=7}
+DimPlot(seur, label = TRUE, repel = TRUE, label.size = 4, shuffle = TRUE) +
+  coord_fixed() +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 8))
+
+ggsave(last_plot(), filename = "../results/02_annotation/plots/umap_annotated.pdf", 
+       device = "pdf", width = 7, height = 7, units = "in")
+```
+
 # Session Info
 ```{r}
 sessionInfo()
