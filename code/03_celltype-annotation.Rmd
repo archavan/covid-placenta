@@ -618,7 +618,8 @@ Clusters 0 and 18.
 4. These two clusters also arise unabiguously from the decidua samples rather than villi samples.
 
 ```{r}
-annotation$annotation[annotation$cluster %in% c("clust_00", "clust_18")] <- "dec.DSC"
+annotation$annotation[annotation$cluster %in% c("clust_00")] <- "dec.DSC_1"
+annotation$annotation[annotation$cluster %in% c("clust_18")] <- "dec.DSC_2"
 
 annotation[annotation$cluster %in% paste0("clust_", c("00", "18")), ]
 ```
