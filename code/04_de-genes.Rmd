@@ -1,0 +1,169 @@
+---
+title: "Annotation of clusters in 10x data"
+author: "Arun Chavan"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    number_sections: true
+bibliography: ../refs.bib
+---
+Started: 2020-09-02  
+Last edited: `r format(Sys.time())`
+
+```{r message=FALSE}
+library(tidyverse)
+
+# single cell
+library(Seurat)
+
+# plotting
+library(patchwork)
+library(ggthemes)
+```
+
+
+# Background
+Alice had performed bulk-RNA seq on the placenta sample from COVID-19 positive mothers and control placentas and has a list of genes that were differentially expressed. Here we will use the single-cell RNA seq data to figure out in which cell types those DE genes are expressed. 
+
+# Data
+I have already annotated the clusters. The annotated data (a `seurat` object) was saved as `.rds`, which we have to read. 
+
+```{r}
+seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
+```
+
+```{r}
+# set active assay
+DefaultAssay(seur) <- "SCT"
+
+# set levels for idents
+seur@meta.data$annotation <- factor(seur@meta.data$annotation,
+                                    levels = sort(unique(seur@meta.data$annotation)))
+
+# set idents
+Idents(seur) <- seur@meta.data$annotation
+```
+
+# DE genes
+Below are the DE genes sent by Alice. 
+
+```{r}
+genes <- list()
+
+genes$focused <- c("HSPA1A", "PPP1R11", "LY6GLY6C", "ITGAX", "IFITM1", "C1QC", "CCL2", "OAS3", "MX1")
+genes$analysis1 <- c("HSPA1A", "FMC1-LUC7L2", "HSPA1B",	"AC011511.4", "PPP1R11", "AL139300.1", "LY6GLY6C")
+genes$analysis2 <- c("ITGAX", "OAS3", "IFITM1", "MX1", "C1QC", "MX2", "CCL2")
+genes$additional <- c("C1QTNF2", "LYVE1", "TREM1", "FOLR2", "C1QB",	"CCL2", "TNFRSF10C", "CXCL9", "IL1R2", "IL36A", "CD28", "OAS1", "IL1RN", "CD36", "CXCR2",	"SERPING1", "CXCR1", "TNFRSF10C", "C1QA")
+```
+
+# Plots
+
+```{r}
+# dotplot function
+DotPlot2 <- function(object = seur, assay = "SCT", features, title = "", ...) {
+  p <- DotPlot(object, 
+               assay = assay,
+               features = features, 
+               dot.scale = 4, 
+               ...) +
+    # coord_flip() +
+    labs(caption = paste0("sctransform normalized expression"), title = title) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.2),
+          legend.key.size = unit(0.75, "line"))
+  
+  return(p)
+}
+```
+
+```{r}
+# violin function
+VlnPlot2 <- function(object = seur, assay = "SCT", features, ...) {
+  VlnPlot(object = object, features = features, 
+          assay = assay, 
+          same.y.lims = FALSE, 
+          stack = TRUE, 
+          split.by = "covid", 
+          ...) + 
+    theme_bw() +
+    theme(legend.position = "bottom",
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(size = 0.25))
+}
+```
+
+```{r fig.asp=1.5}
+# umap function
+FeaturePlot2 <- function(object = seur, features, max.cutoff = "q100", ...) {
+  DefaultAssay(object) <- "SCT"
+  FeaturePlot(object, 
+              features = features, 
+              pt.size = 0.1, 
+              order = TRUE, 
+              min.cutoff = "q10", max.cutoff = max.cutoff, 
+              ncol = 2,
+              ...) &
+    theme_bw() +
+    theme(panel.grid.major = element_line(size = 0.25),
+          panel.grid.minor = element_blank(),
+          legend.key.size = unit(0.5, "line"),
+          legend.text = element_text(size = 8),
+          axis.title = element_text(size = 6),
+          plot.title = element_text(size = 10),
+          aspect.ratio = 1) 
+}
+```
+
+## Focused list
+### Dotplot
+```{r fig.asp=1.4, fig.width=5}
+DotPlot2(features = genes$focused)
+```
+### Violin plot
+```{r fig.asp = 1.8}
+VlnPlot2(features = genes$focused)
+```
+### on UMAP
+```{r fig.asp=1.5}
+FeaturePlot2(features = genes$focused, max.cutoff = "q99")
+```
+## Analysis1
+### Dot plot
+```{r fig.asp=1.4, fig.width=5}
+DotPlot2(features = genes$analysis1)
+```
+
+### Violin plot
+```{r fig.asp = 1.8}
+VlnPlot2(features = genes$analysis1)
+```
+
+### UMAP
+```{r fig.asp=1.5}
+FeaturePlot2(features = genes$analysis1, max.cutoff = "q99")
+```
+
+## Analysis2
+### Dot plot
+```{r fig.asp=1.4, fig.width=5}
+DotPlot2(features = genes$analysis2)
+```
+
+### Violin plot
+```{r fig.asp = 1.8}
+VlnPlot2(features = genes$analysis2)
+```
+
+### UMAP
+```{r fig.asp=1.5}
+FeaturePlot2(features = genes$analysis2, max.cutoff = "q99")
+```
+
+# Session Info
+```{r}
+sessionInfo()
+```
+
