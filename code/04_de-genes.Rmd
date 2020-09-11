@@ -8,7 +8,7 @@ output:
     number_sections: true
 bibliography: ../refs.bib
 ---
-Started: 2020-09-02  
+Started: 2020-09-10  
 Last edited: `r format(Sys.time())`
 
 ```{r message=FALSE}
