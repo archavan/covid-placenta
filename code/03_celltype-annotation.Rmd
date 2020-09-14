@@ -484,9 +484,9 @@ markers <- split.data.frame(markers, markers$cluster)
 We will plot top 50 marker genes for all clusters and save the plot to pdf. 
 ```{r}
 # plotting function
-DotPlot2 <- function(object = "seur", assay = "SCT", features, title, ...) {
-  p <- DotPlot(seur, 
-               assay = "SCT",
+DotPlot2 <- function(object = seur, assay = "SCT", features, title, ...) {
+  p <- DotPlot(object, 
+               assay = assay,
                features = features, 
                dot.min = 0.05, dot.scale = 4) +
     coord_flip() +
