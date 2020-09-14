@@ -1168,6 +1168,8 @@ annotation$annotation[annotation$cluster %in% c("clust_28")] <- "dec.Gran"
 
 annotation$notes[annotation$cluster %in% c("clust_27")] <- "also fibroblast signature"
 annotation$notes[annotation$cluster %in% c("clust_34")] <- "likely also contains erythro"
+annotation$notes[annotation$cluster %in% c("clust_03")] <- "unsure"
+annotation$notes[annotation$cluster %in% c("clust_08")] <- "unsure"
 
 annotation[annotation$cluster %in% paste0("clust_", 
                                           c("01", "03", "08", "11", "12",
@@ -1387,24 +1389,53 @@ DotPlot2(features = markers.surya$gene[markers.surya$cluster == "vil.HC"], title
 ```
 
 # Final annotations
+## Merge similar clusters
+In addition to the annotations so far, we can have a second set of coarser-grained annotations so that we have fewer clusters to deal with. For this we will merge some similar clusters---mostly non-immune clusters, leaving all immune clusters intact. 
+
+```{r}
+annotation$annotation_merged <- annotation$annotation
+
+annotation$annotation_merged[annotation$annotation %in% paste0("vil.Hofb_", c(1:5))] <- "vil.Hofb"
+annotation$annotation_merged[annotation$annotation %in% paste0("dec.DSC_", c(1:2))] <- "dec.DSC"
+annotation$annotation_merged[annotation$annotation %in% paste0("dec.FB_", c(1:3))] <- "dec.FB"
+annotation$annotation_merged[annotation$annotation %in% paste0("vil.FB_", c(1:3))] <- "vil.FB"
+annotation$annotation_merged[annotation$annotation %in% paste0("dec.APC_", c(1:2))] <- "dec.APC"
+annotation$annotation_merged[annotation$annotation %in% paste0("vil.VCT_", c(1:4))] <- "vil.VCT"
+annotation$annotation_merged[annotation$annotation %in% paste0("vil.SCT_", c(1:2))] <- "vil.SCT"
+annotation$annotation_merged[annotation$annotation %in% c("dec.Endo", "dec.Endo.L")] <- "dec.Endo"
+```
+
+```{r}
+# rearrange columns and write annotations to csv
+annotation <- annotation[, c("cluster", "annotation", "annotation_merged", "notes")]
+
+write.csv(annotation, "../results/02_annotation/files/annotations.csv", row.names = FALSE)
+```
+
 
 ```{r}
 annotation %>% kable(caption = "Final annotations of all clusters") %>% kable_styling(full_width = FALSE)
 ```
 ## Add annotations to `Seurat` object
 ```{r}
-seur@meta.data$annotation <- annotation$annotation[match(x = seur@meta.data$seurat_clusters,
-                                                         table = annotation$cluster)]
+seur@meta.data$annotation <- annotation$annotation[match(
+  x = seur@meta.data$seurat_clusters,
+  table = annotation$cluster)
+  ]
 
-Idents(seur) <- seur@meta.data$annotation
+seur@meta.data$annotation_merged <- annotation$annotation_merged[match(
+  x = seur@meta.data$seurat_clusters, 
+  table = annotation$cluster)
+  ]
 
 # write seurat object
 saveRDS(seur, file = "../results/02_annotation/seurat-object_annotated.rds")
 ```
 
 ## Plots
-### UMAP
+### UMAP: all annotations
 ```{r, fig.asp=1, fig.width=7}
+Idents(seur) <- seur@meta.data$annotation
 DimPlot(seur, label = TRUE, repel = TRUE, label.size = 4, shuffle = TRUE) +
   coord_fixed() +
   theme_minimal() +
@@ -1413,6 +1444,19 @@ DimPlot(seur, label = TRUE, repel = TRUE, label.size = 4, shuffle = TRUE) +
         axis.title = element_text(size = 8))
 
 ggsave(last_plot(), filename = "../results/02_annotation/plots/umap_annotated.pdf", 
+       device = "pdf", width = 7, height = 7, units = "in")
+```
+### UMAP: merged annotations
+```{r, fig.asp=1, fig.width=7}
+Idents(seur) <- seur@meta.data$annotation_merged
+DimPlot(seur, label = TRUE, repel = TRUE, label.size = 4, shuffle = TRUE) +
+  coord_fixed() +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 8))
+
+ggsave(last_plot(), filename = "../results/02_annotation/plots/umap_annotated_merged.pdf", 
        device = "pdf", width = 7, height = 7, units = "in")
 ```
 
