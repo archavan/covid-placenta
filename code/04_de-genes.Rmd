@@ -37,12 +37,12 @@ seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
 # set active assay
 DefaultAssay(seur) <- "SCT"
 
-# set levels for idents
-seur@meta.data$annotation <- factor(seur@meta.data$annotation,
-                                    levels = sort(unique(seur@meta.data$annotation)))
+# set levels for idents (use merged_annotations)
+seur@meta.data$annotation_merged <- factor(seur@meta.data$annotation_merged,
+                                           levels = sort(unique(seur@meta.data$annotation_merged)))
 
 # set idents
-Idents(seur) <- seur@meta.data$annotation
+Idents(seur) <- seur@meta.data$annotation_merged
 ```
 
 # DE genes
@@ -55,9 +55,14 @@ genes$focused <- c("HSPA1A", "PPP1R11", "LY6GLY6C", "ITGAX", "IFITM1", "C1QC", "
 genes$analysis1 <- c("HSPA1A", "FMC1-LUC7L2", "HSPA1B",	"AC011511.4", "PPP1R11", "AL139300.1", "LY6GLY6C")
 genes$analysis2 <- c("ITGAX", "OAS3", "IFITM1", "MX1", "C1QC", "MX2", "CCL2")
 genes$additional <- c("C1QTNF2", "LYVE1", "TREM1", "FOLR2", "C1QB",	"CCL2", "TNFRSF10C", "CXCL9", "IL1R2", "IL36A", "CD28", "OAS1", "IL1RN", "CD36", "CXCR2",	"SERPING1", "CXCR1", "TNFRSF10C", "C1QA")
+
+all.genes <- c(genes$focused, genes$analysis1, genes$analysis2, genes$additional) %>% 
+  unique() %>% 
+  sort()
 ```
 
 # Plots
+## Dotplot for all genes
 
 ```{r}
 # dotplot function
@@ -66,101 +71,99 @@ DotPlot2 <- function(object = seur, assay = "SCT", features, title = "", ...) {
                assay = assay,
                features = features, 
                dot.scale = 4, 
+               dot.min = 0.01,
                ...) +
-    # coord_flip() +
+    coord_flip() +
     labs(caption = paste0("sctransform normalized expression"), title = title) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
           panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(size = 0.2),
+          panel.grid.major = element_line(size = 0.1),
           legend.key.size = unit(0.75, "line"))
   
   return(p)
 }
 ```
 
+```{r fig.asp=1}
+DotPlot2(features = all.genes)
+
+cowplot::ggsave2(last_plot(), 
+                 filename = "../results/03_de-genes/plots/dotplot_all-genes.pdf", 
+                 width = 7, height = 7, units = "in")
+```
+
+## Individual genes
 ```{r}
 # violin function
-VlnPlot2 <- function(object = seur, assay = "SCT", features, ...) {
-  VlnPlot(object = object, features = features, 
+VlnPlot2 <- function(object = seur, assay = "SCT", feature, ...) {
+  VlnPlot(object = object, 
+          features = feature, 
           assay = assay, 
-          same.y.lims = FALSE, 
-          stack = TRUE, 
+          same.y.lims = FALSE,
           split.by = "covid", 
+          split.plot = TRUE,
+          pt.size = 0,
           ...) + 
-    theme_bw() +
+    theme_minimal() +
     theme(legend.position = "bottom",
           panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(size = 0.25))
+          panel.grid.major = element_line(size = 0.2),
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+          legend.key.size = unit(0.75, "lines"))
 }
 ```
 
-```{r fig.asp=1.5}
+```{r}
 # umap function
-FeaturePlot2 <- function(object = seur, features, max.cutoff = "q100", ...) {
+FeaturePlot2 <- function(object = seur, feature, ...) {
   DefaultAssay(object) <- "SCT"
   FeaturePlot(object, 
-              features = features, 
+              feature = feature, 
+              split.by = "covid",
               pt.size = 0.1, 
               order = TRUE, 
-              min.cutoff = "q10", max.cutoff = max.cutoff, 
-              ncol = 2,
+              min.cutoff = "q10", 
+              combine = TRUE,
               ...) &
+    plot_annotation(title = feature) &
     theme_bw() +
     theme(panel.grid.major = element_line(size = 0.25),
           panel.grid.minor = element_blank(),
-          legend.key.size = unit(0.5, "line"),
-          legend.text = element_text(size = 8),
-          axis.title = element_text(size = 6),
-          plot.title = element_text(size = 10),
-          aspect.ratio = 1) 
+          legend.key.size = unit(0.75, "line"),
+          legend.text = element_text(size = 8, angle = 90, hjust = 1),
+          legend.position = "bottom",
+          axis.title = element_text(size = 8),
+          plot.title = element_text(size = 12),
+          axis.title.y.right = element_blank(),
+          axis.text = element_blank(),
+          aspect.ratio = 1)
 }
 ```
 
-## Focused list
-### Dotplot
-```{r fig.asp=1.4, fig.width=5}
-DotPlot2(features = genes$focused)
-```
-### Violin plot
-```{r fig.asp = 1.8}
-VlnPlot2(features = genes$focused)
-```
-### on UMAP
-```{r fig.asp=1.5}
-FeaturePlot2(features = genes$focused, max.cutoff = "q99")
-```
-## Analysis1
-### Dot plot
-```{r fig.asp=1.4, fig.width=5}
-DotPlot2(features = genes$analysis1)
+
+```{r fig.width=7, fig.asp=0.8}
+
+for(i in all.genes[all.genes %in% rownames(seur)]) {
+  vplot <- VlnPlot2(feature = i)
+  fplot <- FeaturePlot2(feature = i, max.cutoff = "q99")
+  
+  cowplot::ggsave2(vplot, 
+                   filename = paste0("../results/03_de-genes/plots/", i, "_violinplot.pdf"),
+                   width = 6, height = 3.5, units = "in")
+  
+  cowplot::ggsave2(fplot, 
+                   filename = paste0("../results/03_de-genes/plots/", i, "_on-umap.png"),
+                   width = 5, height = 4, units = "in")
+  
+  vf <- vplot + fplot + 
+    plot_layout(guides = "collect", ncol = 1, widths = c(1, 1)) + 
+    plot_annotation(caption = "sctransform normalized expression")
+  print(vf)
+}
 ```
 
-### Violin plot
-```{r fig.asp = 1.8}
-VlnPlot2(features = genes$analysis1)
-```
-
-### UMAP
-```{r fig.asp=1.5}
-FeaturePlot2(features = genes$analysis1, max.cutoff = "q99")
-```
-
-## Analysis2
-### Dot plot
-```{r fig.asp=1.4, fig.width=5}
-DotPlot2(features = genes$analysis2)
-```
-
-### Violin plot
-```{r fig.asp = 1.8}
-VlnPlot2(features = genes$analysis2)
-```
-
-### UMAP
-```{r fig.asp=1.5}
-FeaturePlot2(features = genes$analysis2, max.cutoff = "q99")
-```
+For some genes, the umap plots and violin plots seem to disagree with each other. That is, the gene is expressed at higher level in "covid" than "control" according to the violin plot, but the colours appear stronger for "control" on umap plots. I think this is simply because of the differing number of cells from "control" and "covid". We have fewer cells from "covid" samples (as is evident also on the umap plots), so the lightness or sparseness of blue on umap plots just reflect that. Violin plots on the other hand scale the width of violins to the total number of cells in each group, so this difference is not seen in violin plots.
 
 # Session Info
 ```{r}
