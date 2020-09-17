@@ -54,9 +54,10 @@ genes <- list()
 genes$focused <- c("HSPA1A", "PPP1R11", "LY6GLY6C", "ITGAX", "IFITM1", "C1QC", "CCL2", "OAS3", "MX1")
 genes$analysis1 <- c("HSPA1A", "FMC1-LUC7L2", "HSPA1B",	"AC011511.4", "PPP1R11", "AL139300.1", "LY6GLY6C")
 genes$analysis2 <- c("ITGAX", "OAS3", "IFITM1", "MX1", "C1QC", "MX2", "CCL2")
-genes$additional <- c("C1QTNF2", "LYVE1", "TREM1", "FOLR2", "C1QB",	"CCL2", "TNFRSF10C", "CXCL9", "IL1R2", "IL36A", "CD28", "OAS1", "IL1RN", "CD36", "CXCR2",	"SERPING1", "CXCR1", "TNFRSF10C", "C1QA")
+genes$additional <- c("C1QTNF2", "LYVE1", "TREM1", "FOLR2", "C1QB",	"CCL2", "TNFRSF10C", "CXCL9", "IL1R2", "IL36A", "CD28", "OAS1", "IL1RN", "CD36", "CXCR2",	"SERPING1", "CXCR1", "TNFRSF10C", "C1QA", "HCST", "IL36A", "IL4R", "LY96", "IL1R2", "CXCR2", "CXCL2", "S100A7", "IFITM3", "SELENOM", "SELENOP", "C3AR1", "CCL2", "CCL8")
+genes$entry <- c("ACE2", "TMPRSS2", "BSG", "DPP4", "CTSL", "CTSB", "FURIN")
 
-all.genes <- c(genes$focused, genes$analysis1, genes$analysis2, genes$additional) %>% 
+all.genes <- c(genes$focused, genes$analysis1, genes$analysis2, genes$additional, genes$entry) %>% 
   unique() %>% 
   sort()
 ```
@@ -85,12 +86,12 @@ DotPlot2 <- function(object = seur, assay = "SCT", features, title = "", ...) {
 }
 ```
 
-```{r fig.asp=1}
+```{r fig.asp=1.2, fig.width=6.5}
 DotPlot2(features = all.genes)
 
 cowplot::ggsave2(last_plot(), 
                  filename = "../results/03_de-genes/plots/dotplot_all-genes.pdf", 
-                 width = 7, height = 7, units = "in")
+                 width = 6.5, height = 8, units = "in")
 ```
 
 ## Individual genes
