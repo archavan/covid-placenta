@@ -275,8 +275,6 @@ de_volcano <- function(celltype) {
   plot.dat <- de.genes[[celltype]]
   plot.dat$gene <- rownames(plot.dat)
   
-  plot.dat$p_val_adj[plot.dat$p_val_adj == 0] <- min(plot.dat$p_val_adj) # replace zeros with minimum pvalue for log
-  
   # top DE genes
   genes.to.label = de.genes[[celltype]] %>% 
     .[order(abs(de.genes[[celltype]]$avg_logFC), decreasing = TRUE), ] %>% 
