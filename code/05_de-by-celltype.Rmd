@@ -21,6 +21,7 @@ library(Seurat)
 library(patchwork)
 library(ggthemes)
 library(ggrepel)
+library(ggforce)
 
 # go enrichment
 library(clusterProfiler)
@@ -98,6 +99,62 @@ ggsave(p, filename = "../results/04_de-genes-by-celltype/plots/number-of-de-gene
 
 print(p)
 ```
+
+## Mitochondrial UMI
+For some cell types a lot of mitochondrial genes are DE between covid and control. It's possible that those genes are really differentially expressed, but it's more likely that there is a difference between covid and control samples in terms of quality of cell-prep. We can look at percent mitochondrial UMI in all cell types by covid status to see if this is true.
+
+```{r fig.asp=0.55}
+ggplot(data = seur@meta.data, aes(x = covid, y = percent.mt)) +
+  geom_sina(aes(color = covid), size = 1, alpha = 1) +
+  scale_color_tableau() +
+  facet_grid(.~ annotation_merged) +
+  labs(caption = "% mitochondrial reads in all cell types") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_line(size = 0.2),
+        panel.grid.minor = element_blank(),
+        strip.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) 
+```
+
+For most cell types there appears to be a difference in the distribution of percent mitochondrial reads between covid and control samples. Covid samples generally have lower % mitochondrial reads. Next, we can plot the absolute value of the difference in percent mitochondrial reads between covid and control against the number of DE genes that are mitochondrial. If the mitochondrial genes in DE analysis are driven by differences in sample quality, we should expect a positive realtionship. 
+
+```{r}
+mt <- data.frame(
+  celltype = sort(names(de.genes)),
+  mt.diff = NA,
+  mt.de = NA
+)
+
+for(i in mt$celltype) {
+  mt$mt.diff[mt$celltype == i] <- abs(
+    median(seur$percent.mt[seur$annotation_merged == i & seur$covid == "covid"]) -
+      median(seur$percent.mt[seur$annotation_merged == i & seur$covid == "cntrl"])
+  )
+  
+  mt$mt.de[mt$celltype == i] <- grep("MT-", rownames(de.genes[[i]])) %>% length()
+}
+```
+
+```{r fig.asp = 0.8, fig.width=5}
+ggplot(data = mt, aes(x = mt.diff, y = mt.de, label = celltype)) +
+  geom_point(shape = 21, color = "black", fill = "grey40", size = 3) +
+  coord_cartesian(xlim = c(0, NA), ylim = c(0, NA)) +
+  geom_text_repel(size = 3, color = "grey40") +
+  labs(x = "\nabs(median(% mt in covid) - median(% mt in control))",
+       y = "number of DE mitochondrial genes") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line(size = 0.25),
+        panel.grid.minor = element_blank())
+```
+
+```{r}
+summary(lm(data = mt, mt.de ~ mt.diff))
+```
+
+There is a positive relationship between these two variables, visually as well as statistically. More so for villous cell types. Three decidual cell types---dec.Mono_1, dec.Mono_2, and dec.Tcell_2---have high number of MT DE genes despite low difference in percent MT reads. 
+
+We could ignore the mitochondrial genes when interpreting DE results, or we could rerun DE analysis excluding the mitochondrial genes. 
 
 # Interferome
 Interferome [@rusinova_interferome_2012]  is a manually curated database of interferon-responsive genes, available at http://www.interferome.org/interferome/home.jspx. The database essentially contains a list of all genes whose expression is affected by interferons, as inferred from various datasets. These datasets include in vitro and in vivo studies from human and mouse. The online interface includes a search function which allows users to input a list of genes, which are searched against the database. The output includes various things including: (1) list of genes from the input that are found in the inferferome database, i.e. there is evidence for these genes to be modulated by interferon, (2) a detailed table with links pointing to the dataset from which the evidence was gathered for each gene, (3) gene ontology enrichment, (4) TF binding site analysis, etc. 
