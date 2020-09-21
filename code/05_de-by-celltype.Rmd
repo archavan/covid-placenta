@@ -1,0 +1,321 @@
+---
+title: "DE between covid and control by cell type"
+author: "Arun Chavan"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    number_sections: true
+bibliography: ../refs.bib
+---
+Started: 2020-09-20   
+Last edited: `r format(Sys.time())`
+
+```{r message=FALSE}
+library(tidyverse)
+
+# single cell
+library(Seurat)
+
+# plotting
+library(patchwork)
+library(ggthemes)
+library(ggrepel)
+
+# go enrichment
+library(clusterProfiler)
+library(org.Hs.eg.db)
+```
+
+# Background
+Our goal here is to perform differential expression analysis between covid and control samples separately for each annotated cell type in the single cell RNA-seq data. 
+
+# Data
+We will use the `Seurat` object in which we have saved the cell annotations.
+
+```{r}
+seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
+```
+
+# Differentialy expressed genes
+
+We will use the "merged" annotations as our celltypes for which to perform DE analysis. For idetifying differentially expressed genes, we will use `Seurat::FindMarkers()`. For this we first have to create a new metadata column with `celltype_covid` and `celltype_control` values, and then we run DE between these two `idents`. This function by dafault uses the Wilcoxon Rank Sum test, which we won't change. By default this function outputs all genes for which `abs(logFC)` is at least `0.25`, without filtering by p value. This is one bit that we will change---we will output genes that have `abs(logFC) > 0.25` AND `adj_p < 0.05`. 
+
+The output of this for each cell type is stored as `.csv` in `results/04_de-genes-by-celltype/files`. 
+
+```{r}
+# set up
+seur$celltype_covid <- paste(seur$annotation_merged, seur$covid, sep = "_")
+Idents(seur) <- seur$celltype_covid
+```
+
+```{r}
+# de
+de.genes <- list()
+
+for (i in unique(seur$annotation_merged)) {
+  de.genes[[i]] <-  FindMarkers(seur, 
+                                ident.1 = paste0(i, "_covid"), 
+                                ident.2 = paste0(i, "_cntrl"),
+                                assay = "SCT", verbose = FALSE) %>% 
+    dplyr::filter(p_val_adj < 0.05) %>% 
+    dplyr::rename(pct.covid = pct.1,
+                  pct.cntrl = pct.2)
+}
+```
+
+```{r}
+# write DE genes to files
+for(i in unique(seur$annotation_merged)) {
+  write.csv(de.genes[[i]],
+            file = paste0("../results/04_de-genes-by-celltype/files/de-genes_", i, ".csv" ),
+            row.names = TRUE)
+}
+```
+
+## Number of DE genes by celltype
+```{r fig.width=5.5, fig.asp = 0.75}
+de.number <- lapply(de.genes, nrow) %>% as.data.frame() %>% t() %>% as.data.frame()
+colnames(de.number) <- "number"
+de.number$celltype <- rownames(de.number)
+de.number <- de.number[order(de.number$number, decreasing = TRUE), ]
+
+de.number$celltype <- factor(de.number$celltype, levels = de.number$celltype)
+
+p <- ggplot(data = de.number, aes(x = celltype, y = number, label = number)) +
+  geom_bar(stat = "identity", fill = "grey50") +
+  geom_text(size = 2.5, vjust = -0.25) +
+  ggtitle("Number of DE genes") +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(size = 0.25),
+        legend.key.size = unit(0.75, "lines"),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggsave(p, filename = "../results/04_de-genes-by-celltype/plots/number-of-de-genes.pdf", width = 5, height = 3.75, units = "in")
+
+print(p)
+```
+
+# Interferome
+Interferome [@rusinova_interferome_2012]  is a manually curated database of interferon-responsive genes, available at http://www.interferome.org/interferome/home.jspx. The database essentially contains a list of all genes whose expression is affected by interferons, as inferred from various datasets. These datasets include in vitro and in vivo studies from human and mouse. The online interface includes a search function which allows users to input a list of genes, which are searched against the database. The output includes various things including: (1) list of genes from the input that are found in the inferferome database, i.e. there is evidence for these genes to be modulated by interferon, (2) a detailed table with links pointing to the dataset from which the evidence was gathered for each gene, (3) gene ontology enrichment, (4) TF binding site analysis, etc. 
+
+I ran the list of DE genes for each of the 21 celltypes through Interferome (`version 2.01`, 2020-09-20) and saved the text output for (1) and (2) from above. I used the following search parameters (all defaults except for narrowing species to *Homo sapiens*)
+
+```
+Interferome Type:	Any
+Interferome SubType:	Any
+Treatment Concentration:	Any
+Treatment Time:	Any
+Vivo/Vitro:	Any
+Species:	Homo sapiens
+System:	Any
+Organ:	Any
+Cell:	Any
+Cell Line:	Any
+Normal/Abnormal:	Any
+Fold Change Up:	2.0
+Fold Change Down:	2.0
+```
+
+We want to calculate for each celltype, the fraction of DE genes (between covid and control) which are known to be interferon-responsive. For this, below we will read the Interferome output text files and calculate that fraction. 
+
+```{r}
+# read interferome output
+ifome <- list()
+
+for(i in names(de.genes)) {
+  ifome[[i]] <- read.table(paste0("../results/04_de-genes-by-celltype/interferome/files/interferome_", i, "_gene-summary.txt"), header = TRUE, sep = "\t", quote = "", skip = 19, strip.white = TRUE, stringsAsFactors = FALSE)
+}
+```
+
+```{r}
+# create a dataframe of number of genes in interferome for each cell type
+ifome.n <- data.frame(
+  celltype = names(de.genes),
+  n_de = NA,
+  n_interferome.yes = NA
+)
+
+# calculate number of genes
+for (i in names(de.genes)) {
+  ifome.n$n_de[ifome.n$celltype == i] <- nrow(de.genes[[i]])
+  ifome.n$n_interferome.yes[ifome.n$celltype == i] <- ifome[[i]]$Gene.Name[ifome[[i]]$Gene.Name %in% rownames(de.genes[[i]])] %>% unique() %>% length() 
+}
+
+ifome.n$n_interferome.no <- ifome.n$n_de - ifome.n$n_interferome.yes
+
+# calculate percentages
+ifome.n$pct_interferome.yes <- (ifome.n$n_interferome.yes/ifome.n$n_de) * 100
+ifome.n$pct_interferome.no <- 100 - ifome.n$pct_interferome.yes
+
+# write to file
+write.csv(ifome.n, "../results/04_de-genes-by-celltype/interferome/files/number-of-genes_interferome.csv", row.names = FALSE)
+
+# melt
+ifome.n.long <- pivot_longer(data = ifome.n,
+                             cols = 3:6,
+                             names_to = c(".value", "interferome"), 
+                             names_pattern = "(.+)_(.+)")
+ifome.n.long$interferome <- gsub("interferome.", "", ifome.n.long$interferome)
+```
+
+```{r}
+ifome.n.long$celltype <- factor(ifome.n.long$celltype, 
+                                levels = de.number$celltype)
+```
+
+```{r fig.asp=1.2, }
+# plot iterferome output
+p.n <- ggplot(data = ifome.n.long, aes(x = celltype, y = n)) +
+  geom_bar(position = "stack", stat = "identity", aes(fill = interferome)) +
+  scale_fill_manual(values = c("grey90", "#4e79a7"), breaks = c("no", "yes")) +
+  geom_text(data = ifome.n.long[ifome.n.long$interferome == "yes", ], 
+            aes(x = celltype, y = n, label = n),
+            size = 2.5, vjust = -0.25) +
+  labs(y = "number")
+
+p.pct <- ggplot(data = ifome.n.long, aes(x = celltype, y = pct)) +
+  geom_bar(position = "stack", stat = "identity", aes(fill = interferome)) +
+  scale_fill_manual(values = c("grey90", "#4e79a7"), breaks = c("no", "yes")) +
+  geom_text(data = ifome.n.long[ifome.n.long$interferome == "yes", ], 
+            aes(x = celltype, y = pct, label = round(pct, 0)),
+            size = 2.5, vjust = -0.25) +
+  labs(y = "percent")
+
+p <- p.n + p.pct + plot_layout(guides = "collect", ncol = 1) +
+  plot_annotation(title = "DE genes in interferome database") &
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(size = 0.25),
+        legend.key.size = unit(0.75, "lines"),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggsave(p, 
+       filename = "../results/04_de-genes-by-celltype/interferome/plots/de-genes-interferome.pdf", 
+       width = 6, height = 8, units = "in")
+
+print(p)
+```
+
+For most cell types, a large chunk of genes differentially expressed between covid and control are in fact known to be responsive to interferons according to Interferome. This number is over 60% for most cell types, and approximately 80% for dec.APC, dec.FB, dec.Mono_1, dec.Mono_2, vil.FB, vil.Hofb, vil.VCT, and dec.Tcell_2. It is below 60% only for vil.SCT and dec.Gran, but these cell types have the least number of DE genes, 26 and 9 respectively. 
+
+# GO enrichment
+I also ran GO enrichment (only for the Biological Process category) for DE genes (only those that are up-regulated in covid) in all celltypes. The table outputs for all celltypes are saved as `.csv` in `results/04_de-genes-by-celltype/files`. 
+
+For most cell types, the enriched GO categproes include those related to defense to viral infection, interferon response genes, misfolded protein response, etc. See below for the top 10 enriched GO categories for DE genes in each celltype.
+
+```{r}
+# function for GO enrichment on upregulated genes for each cell type
+enrichGO2 <- function(celltype, ...) {
+  
+  up <- de.genes[[celltype]] %>% 
+    dplyr::filter(avg_logFC > 0)
+  
+  ids.bitr <- bitr(rownames(up), 
+                   fromType = "SYMBOL", toType = c("ENTREZID", "SYMBOL"), 
+                   OrgDb = "org.Hs.eg.db")
+    
+  features <- ids.bitr$ENTREZID
+
+  ego <- enrichGO(
+    gene          = features,    
+    OrgDb         = org.Hs.eg.db,
+    ont           = "BP",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.01, # default 0.01
+    qvalueCutoff  = 0.05, # default 0.05
+    readable = TRUE,
+    ...)
+  
+  dftoprint <- clusterProfiler::simplify(ego)@result
+  rownames(dftoprint) <- NULL
+  
+  return(dftoprint)
+}
+```
+
+```{r}
+# perform GO enrichment
+de.go <- list()
+
+for(i in names(de.genes)) {
+  de.go[[i]] <- enrichGO2(celltype = i)
+}
+```
+
+```{r}
+# write GO enrichments to files
+for(i in unique(names(de.go))) {
+  write.csv(de.go[[i]],
+            file = paste0("../results/04_de-genes-by-celltype/files/enrichedGO_", i, ".csv" ),
+            row.names = FALSE)
+}
+```
+
+```{r}
+for(i in names(de.go)) {
+  print(i)
+  print(as.data.frame(de.go[[i]][1:10, 2]))
+}
+```
+
+
+# Volcano plots
+
+Below are volcano plots for all cell types: -log10(p value) vs logFC; top 30 genes with highest `abs(logFC)` are labeled.
+
+```{r}
+# function for volcano plot
+de_volcano <- function(celltype) {
+  
+  plot.dat <- de.genes[[celltype]]
+  plot.dat$gene <- rownames(plot.dat)
+  
+  plot.dat$p_val_adj[plot.dat$p_val_adj == 0] <- min(plot.dat$p_val_adj) # replace zeros with minimum pvalue for log
+  
+  # top DE genes
+  genes.to.label = de.genes[[celltype]] %>% 
+    .[order(abs(de.genes[[celltype]]$avg_logFC), decreasing = TRUE), ] %>% 
+    rownames() %>% .[1:30]
+  
+  plot.dat$label <- ifelse(test = plot.dat$gene %in% genes.to.label,
+                           yes = plot.dat$gene,
+                           no = NA)
+  
+  p <- ggplot(plot.dat, 
+              aes(avg_logFC, -log10(p_val_adj), label = label)) + 
+    geom_point(alpha = 0.4, size = 2) + 
+    ggtitle(celltype) +
+    geom_label_repel(size = 3, force = 1, color = "grey20") +
+    theme_bw() +
+    theme(panel.grid.major = element_line(size = 0.25),
+          panel.grid.minor = element_blank()) 
+  
+  return(p)
+}
+```
+
+```{r fig.asp=0.8}
+for(i in names(de.genes)) {
+  p <- de_volcano(celltype = i)
+  
+  ggsave(p, 
+         filename = paste0("../results/04_de-genes-by-celltype/plots/volcanoplot_", i, ".pdf"),
+         width = 7, height = 5.5, units = "in")
+  
+  print(p)
+}
+```
+
+
+
+# Session Info
+```{r}
+sessionInfo()
+```
+
+# References
