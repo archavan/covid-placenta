@@ -373,7 +373,7 @@ The TIL vs TNL differential gene expression results from [@pique-regi_single_201
 
 ```{r}
 til <- readxl::read_excel("../info/from-papers/pique-regi_2019/supp/elife-52004-supp5-v2.xls")
-labor <- til %>% filter(Compare == "TNL_v_TIL")
+labor <- til %>% filter(Compare == "TNL_v_TIL" & padj < 0.05)
 head(labor)
 ```
 Now we have to find out how many of the DE genes between TNL and TIL are shared with DE genes between covid and control. 
@@ -411,7 +411,7 @@ length(labor.genes)
 length(intersect(de.all.genes, labor.genes))
 ```
 
-There are 259 genes that shared between covid vs control and TNL vs TIL. These are likely related to labor. These genes are as follows:
+There are 110 genes that are shared between covid vs control and TNL vs TIL. These are likely related to labor. These genes are as follows:
 
 ```{r}
 intersect(de.all.genes, labor.genes) %>% sort()
@@ -455,15 +455,15 @@ Or in terms of proportions, like this:
 table(shared$labor_pattern, shared$covid_pattern) %>% prop.table()
 ```
 
-Fisher's exact test for this contigency table looks like this:
+Fisher's exact test for this contingency table looks like this:
 
 ```{r}
 table(shared$labor_pattern, shared$covid_pattern) %>% fisher.test(alternative = "two.sided")
 ```
 
-This seems to confirm to some degree that labor is likely a confounding factor in our analysis. Since our control samples are from C-sections (i.e. not in labor), but covid samples are at term and in labor (not C-section), if labor is a confounding factor, we should expect a high proportion of genes to be shared between "covid_high" and "TIL_high", which is exactly what we see. The p value for Fisher's exaxt test is 0.17. 
+This seems to confirm to some degree that labor is likely a confounding factor in our analysis. Since our control samples are from C-sections (i.e. not in labor), but covid samples are at term and in labor (not C-section), if labor is a confounding factor, we should expect a high proportion of genes to be shared between "covid_high" and "TIL_high", which is exactly what we see. The p value for Fisher's exaxt test is 0.22. 
 
-While it's nice to be aware of this effect, it may not be a big problem. This effect is only relevant for genes that are shared between the two comparisons---TNL vs TIL and covid vs control. That fraction of genes, to begin with, is small. Around 500 genes are DE between TIL and TNL. Of these 259 also also DE bewtween covid and control, likely representing the "labor signature" rather than "covid signature". But the number of genes that are DE between covid and control is much larger (2440), i.e. over 2000 genes are DE between covid and control that are not DE between TNL and TIL. These most likely represent the "covid signature" that we are interested in. 
+While it's nice to be aware of this effect, it may not be a big problem. This effect is only relevant for genes that are shared between the two comparisons---TNL vs TIL and covid vs control. That fraction of genes, to begin with, is small. Around 195 genes are DE between TIL and TNL. Of these 110 are also DE between covid and control, likely representing the "labor signature" rather than "covid signature". But the number of genes that are DE between covid and control is much larger (2440), i.e. over 2000 genes are DE between covid and control that are not DE between TNL and TIL. These most likely represent the "covid signature" that we are interested in. 
 
 
 # Session Info
