@@ -366,6 +366,104 @@ for(i in names(de.genes)) {
 }
 ```
 
+# Labor signature
+The control samples in our data come from C-sections. Which makes this a confounding factor in our analyeses. In order to address this, we can compare the list of DE genes between covid and control samples with the list of DE genes between term in labor (TIL) and term not in labor (TNL). This can tell us if (and how much) part of our DE results are driven by labor rather than covid status. 
+
+The TIL vs TNL differential gene expression results from [@pique-regi_single_2019] can be used for this. I downloaded the supplementary file. The file is described as follows: "The columns represent: 1) Cluster or cell-type name, 2) Comparison groups or contrast (i.e., TNL vs TIL, TIL vs PTL), 3) Ensembl gene identifier, 4) Gene symbol, 5) baseMean gene baseline expression as calculated by DESeq2, 6) log2 Fold Change of the first group in column two versus the second group, 7) Standard error estimated for the log2 Fold Change, 8) Nominal p-value, 9) q-value or adjusted p-value to control for FDR. Only rows with q < 0.2 are reported.". 
+
+```{r}
+til <- readxl::read_excel("../info/from-papers/pique-regi_2019/supp/elife-52004-supp5-v2.xls")
+labor <- til %>% filter(Compare == "TNL_v_TIL")
+head(labor)
+```
+Now we have to find out how many of the DE genes between TNL and TIL are shared with DE genes between covid and control. 
+
+```{r}
+# all DE genes across all cell types between covid and control
+de.all <- de.genes
+
+for(i in names(de.all)) {
+  de.all[[i]]$gene <- rownames(de.all[[i]])
+}
+
+de.all <- do.call(rbind, de.all)
+
+de.all.genes <- de.all$gene %>% unique()
+
+# all labor DE genes
+labor.genes <- labor$Gene %>% unique()
+
+```
+
+
+```{r}
+# number of covid vs control DE genes (across all cell types)
+length(de.all.genes)
+```
+
+```{r}
+# number of TNL vs TIL DE genes (across all cell types)
+length(labor.genes)
+```
+
+```{r}
+# number of DE genes shared between covid vs control and TNL vs TIL
+length(intersect(de.all.genes, labor.genes))
+```
+
+There are 259 genes that shared between covid vs control and TNL vs TIL. These are likely related to labor. These genes are as follows:
+
+```{r}
+intersect(de.all.genes, labor.genes) %>% sort()
+```
+
+Now we can compare whether the shared genes change in the same direction that we expect based on the information that our control samples come from C-sections. 
+
+```{r}
+# create a dataframe of shared genes and their direction of changes
+shared <- data.frame(
+  gene = intersect(de.all.genes, labor.genes) %>% sort()
+)
+
+shared$labor_logfc <- NA
+for(i in 1:nrow(shared)){
+  shared$labor_logfc[i] <- mean(labor$log2FoldChange[labor$Gene == shared$gene[i]])
+} # because the same gene can be DE in multiple cell types, we have to take average logFC. Not the best option, but quick and dirty. 
+
+shared$covid_logfc <- NA
+for(i in 1:nrow(shared)){
+  shared$covid_logfc[i] <- mean(de.all$avg_logFC[de.all$gene == shared$gene[i]])
+} 
+
+shared$labor_pattern[shared$labor_logfc < 0] <- "TIL_high"
+shared$labor_pattern[shared$labor_logfc > 0] <- "TNL_high"
+
+shared$covid_pattern[shared$covid_logfc < 0] <- "control_high"
+shared$covid_pattern[shared$covid_logfc > 0] <- "covid_high"
+
+```
+
+The contigency table of shared DE genes looks like this:
+
+```{r}
+table(shared$labor_pattern, shared$covid_pattern)
+```
+
+Or in terms of proportions, like this:
+
+```{r}
+table(shared$labor_pattern, shared$covid_pattern) %>% prop.table()
+```
+
+Fisher's exact test for this contigency table looks like this:
+
+```{r}
+table(shared$labor_pattern, shared$covid_pattern) %>% fisher.test(alternative = "two.sided")
+```
+
+This seems to confirm to some degree that labor is likely a confounding factor in our analysis. Since our control samples are from C-sections (i.e. not in labor), but covid samples are at term and in labor (not C-section), if labor is a confounding factor, we should expect a high proportion of genes to be shared between "covid_high" and "TIL_high", which is exactly what we see. The p value for Fisher's exaxt test is 0.17. 
+
+While it's nice to be aware of this effect, it may not be a big problem. This effect is only relevant for genes that are shared between the two comparisons---TNL vs TIL and covid vs control. That fraction of genes, to begin with, is small. Around 500 genes are DE between TIL and TNL. Of these 259 also also DE bewtween covid and control, likely representing the "labor signature" rather than "covid signature". But the number of genes that are DE between covid and control is much larger (2440), i.e. over 2000 genes are DE between covid and control that are not DE between TNL and TIL. These most likely represent the "covid signature" that we are interested in. 
 
 
 # Session Info
