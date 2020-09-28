@@ -13,9 +13,6 @@ Last edited: `r format(Sys.time())`
 
 ```{r message=FALSE}
 library(tidyverse)
-library(cowplot)
-library(ggtext)
-library(ungeviz)
 
 # single cell
 library(Seurat)
