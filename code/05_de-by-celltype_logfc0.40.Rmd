@@ -29,6 +29,7 @@ library(ungeviz) # for geom_hpline
 # go enrichment
 library(clusterProfiler)
 library(org.Hs.eg.db)
+library(GO.db)
 ```
 
 # Background
@@ -905,6 +906,50 @@ ggsave(
 print(p)
 
 ```
+
+### Plotting after REViGO: only terminal nodes of DAG
+
+GO terms are hierarchically organized in a directed acyclic graph (DAG). Sometimes you can have two terms enriched where one is more inclusive than the other, and the less inclusive one is the more informative one. For example, if you have "cell killing" and "negative regulation of cell killing" as two enriched GO terms, the latter---the more informative one---is a child term of the the former. The parent-child relationship of GO terms is another axis along which we can prune the list of GO terms, by discarding terms whose child terms are also enriched. 
+
+```{r}
+# function for extracting terminal nodes (terms whose child terms are not enriched)
+terminal <- function(terms, ontology=c("C", "P", "F"))
+{
+  FUN <- switch(match.arg(ontology),  
+                C = GOCCPARENTS,
+                P = GOBPPARENTS, 
+                F = GOMFPARENTS)
+  terminal <- terms
+  seen <- c(terms, "all")
+  while (length(terms)) {
+    seen <- c(terms, seen)
+    terms <- mappedRkeys(FUN[terms])
+    terminal <- terminal[!terminal %in% terms]
+    terms <- terms[!terms %in% seen]
+  }
+  terminal
+}
+```
+
+```{r}
+# run revigo output terms through terminal function
+leaf <- terminal(terms = as.character(revigo$term_ID), ontology = "P")
+length(leaf)
+```
+
+```{r fig.asp=1, fig.width=3}
+# plot
+p <- dotplot_go(go.pdat.sub = go.pdat[go.pdat$ID %in% leaf, ])
+
+ggsave(
+  p, 
+  filename = "../results/04_de-genes-by-celltype/logfc_0.40/go/plots/go_dotplot_revigo_terminal-nodes.pdf",
+  width = 6, height = 5.25, units = "in"
+)
+
+print(p)
+```
+
 
 # Session Info
 ```{r}
