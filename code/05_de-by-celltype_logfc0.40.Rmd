@@ -228,10 +228,6 @@ ifome.n$n_interferome.no <- ifome.n$n_de - ifome.n$n_interferome.yes
 # calculate percentages
 ifome.n$pct_interferome.yes <- (ifome.n$n_interferome.yes/ifome.n$n_de) * 100
 ifome.n$pct_interferome.no <- 100 - ifome.n$pct_interferome.yes
-
-# write to file
-write.csv(ifome.n, "../results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv", row.names = FALSE)
-
 ```
 
 ```{r}
@@ -350,6 +346,15 @@ ifome.n$pval <- phyper(
 # colors for plot
 ifome.n$color <- ifelse(ifome.n$pval < 0.05, yes = "Black", no = "Grey")
 
+```
+
+```{r}
+# write to file
+ifome.n %>% 
+  dplyr::rename("n_total.genes" = "N", "n_interferome.genes" = "B") %>% 
+  dplyr::select(-"color") %>% 
+  write.csv(., "../results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv", 
+            row.names = FALSE)
 ```
 
 ```{r}
