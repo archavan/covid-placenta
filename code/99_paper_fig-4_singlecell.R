@@ -1,4 +1,4 @@
-# 2020-10-01
+# started: 2020-10-01
 # Arun Chavan
 
 ### packages ==================================================================
@@ -43,11 +43,71 @@ for(i in celltypes){
   de.go[[i]]$celltype <- i
 }
 
-### UMAP ======================================================================
+### Make individual plots =====================================================
+fig4 <- list()  # list for saving panels
 
-### DE dotplot ================================================================
+## Panel A: UMAP --------------------------------------------------------------
+Idents(seur) <- seur@meta.data$annotation_merged
 
-### Interferome plot ==========================================================
+# plotting fn
+plot_umap <- function(object, title = NA, label, 
+                      split = FALSE, split.by, split.plot, ...){
+  
+  if(split == FALSE){
+    ggobject <- DimPlot(object, label = TRUE, shuffle = TRUE, ...)
+    
+    udat <- ggobject$data # point coordinates
+    ulab <- ggobject$layers[[2]]$data # label coordinates
+  }
+  
+  if(split == TRUE){
+    ggobject <- DimPlot(object, split.by = as.character(split.by),
+                        label = TRUE, shuffle = TRUE, ...)
+    
+    udat <- ggobject$data[eval(
+      expr(`$`(ggobject$data, !!split.by))
+    ) == split.plot, ] # geom point coordinates
+    
+    ulab <- ggobject$layers[[2]]$data[eval(
+      expr(`$`(ggobject$layers[[2]]$data, !!split.by))
+    ) == split.plot, ] # label coordinates
+  }  # see section 19.4 https://adv-r.hadley.nz/quasiquotation.html
+  
+  # plot
+  p <- ggplot() +
+    geom_point(data = udat, aes(x = UMAP_1, y = UMAP_2, color = ident),
+               size = 0.1) +
+    annotate(geom = "text", x = Inf, y = -Inf, label = title,
+             hjust = 1, vjust = -1, size = 7/.pt, fontface = 2) +
+    theme_classic() +
+    theme(aspect.ratio = 1,
+          legend.position = "none",
+          panel.grid = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank())
+  
+  if(label == TRUE)
+    p <- p + 
+    geom_text_repel(data = ulab, aes(x = UMAP_1, y = UMAP_2, label = ident),
+                    size = 6/.pt)
+  
+  return(p)
+  
+}
+
+## plots
+umap.all <- plot_umap(object = seur, label = TRUE, title = "All cells")
+umap.cntrl <- plot_umap(object = seur, label = FALSE, 
+                        split = TRUE, split.by = "covid", split.plot = "cntrl",
+                        title = "Control")
+umap.covid <- plot_umap(object = seur, label = FALSE, 
+                        split = TRUE, split.by = "covid", split.plot = "covid",
+                        title = "Covid")
+
+## Panel B: DE dotplot --------------------------------------------------------
+
+## Panel C: Interferome plot --------------------------------------------------
 # color by pval
 ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey40")
 
@@ -67,8 +127,8 @@ ifome.n.long$celltype <- factor(
 
 # plot
 plot.dat <- ifome.n.long
-p <- ggplot(data = plot.dat, 
-            aes(y = celltype, x = pct)) +
+fig4$c <- ggplot(data = plot.dat, 
+                 aes(y = celltype, x = pct)) +
   geom_bar(aes(fill = interferome),
            position = "stack", 
            stat = "identity", 
@@ -110,9 +170,10 @@ p <- ggplot(data = plot.dat,
     legend.position = "right",
     legend.margin = margin(0, 0, 0, 3))
 
-ggsave(p, filename = "results/99_paper-figures/interferome.pdf", 
+ggsave(fig4$c, 
+       filename = "results/99_paper-figures/fig4_single-cell/panelC_interferome.pdf", 
        width = 3.5, height = 3, units = "in")
 
-### GO plot ===================================================================
+## Panel D: GO plot -----------------------------------------------------------
 
-### Putting it all together ===================================================
+### Arrange ===================================================================
