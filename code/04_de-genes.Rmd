@@ -98,20 +98,37 @@ cowplot::ggsave2(last_plot(),
 ```{r}
 # violin function
 VlnPlot2 <- function(object = seur, assay = "SCT", feature, ...) {
-  VlnPlot(object = object, 
-          features = feature, 
-          assay = assay, 
-          same.y.lims = FALSE,
-          split.by = "covid", 
-          split.plot = TRUE,
-          pt.size = 0,
-          ...) + 
-    theme_minimal() +
-    theme(legend.position = "bottom",
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_line(size = 0.2),
-          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-          legend.key.size = unit(0.75, "lines"))
+  p <- VlnPlot(object = object, 
+               features = feature, 
+               assay = assay, 
+               same.y.lims = FALSE,
+               split.by = "covid", 
+               split.plot = TRUE,
+               pt.size = 0,
+               ...) + 
+    coord_cartesian(clip = "off") +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 7, colour = "black"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(size = 0.2),
+      axis.line = element_line(size = 0.25),
+      axis.ticks = element_line(size = 0.25),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, 
+                                 size = 6, color = "black"),
+      axis.title.x = element_blank(),
+      axis.title.y = element_text(size = 6, color = "black"),
+      axis.text.y = element_text(size = 6, color = "black"),
+      legend.key.size = unit(0.50, "lines"),
+      legend.position = c(1, 1),
+      legend.direction = "horizontal",
+      legend.justification = c(1, 0),
+      legend.text = element_text(size = 6, colour = "black")
+    )
+  
+  p$layers[[1]]$aes_params$size = 0.25 # violin stroke
+  
+  return(p)
 }
 ```
 
@@ -131,11 +148,11 @@ FeaturePlot2 <- function(object = seur, feature, ...) {
     theme_bw() +
     theme(panel.grid.major = element_line(size = 0.25),
           panel.grid.minor = element_blank(),
-          legend.key.size = unit(0.75, "line"),
-          legend.text = element_text(size = 8, angle = 90, hjust = 1),
+          legend.key.size = unit(0.50, "line"),
+          legend.text = element_text(size = 6, angle = 90, hjust = 1),
           legend.position = "bottom",
-          axis.title = element_text(size = 8),
-          plot.title = element_text(size = 12),
+          axis.title = element_text(size = 6),
+          plot.title = element_text(size = 7),
           axis.title.y.right = element_blank(),
           axis.text = element_blank(),
           aspect.ratio = 1)
@@ -143,7 +160,7 @@ FeaturePlot2 <- function(object = seur, feature, ...) {
 ```
 
 
-```{r fig.width=7, fig.asp=0.8}
+```{r fig.width=2.75, fig.asp=1}
 
 for(i in all.genes[all.genes %in% rownames(seur)]) {
   vplot <- VlnPlot2(feature = i)
@@ -151,15 +168,14 @@ for(i in all.genes[all.genes %in% rownames(seur)]) {
   
   cowplot::ggsave2(vplot, 
                    filename = paste0("../results/03_de-genes/plots/", i, "_violinplot.pdf"),
-                   width = 6, height = 3.5, units = "in")
+                   width = 3.5, height = 2, units = "in")
   
   cowplot::ggsave2(fplot, 
                    filename = paste0("../results/03_de-genes/plots/", i, "_on-umap.png"),
-                   width = 5, height = 4, units = "in")
+                   width = 3.5, height = 2.5, units = "in")
   
   vf <- vplot + fplot + 
-    plot_layout(guides = "collect", ncol = 1, widths = c(1, 1)) + 
-    plot_annotation(caption = "sctransform normalized expression")
+  plot_layout(ncol = 1, widths = c(1, 0.5))
   print(vf)
 }
 ```
