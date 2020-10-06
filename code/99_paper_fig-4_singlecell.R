@@ -489,15 +489,6 @@ tileplot_go <- function(go.pdat.sub) {
       legend.title.align = 1
     )
   
-  for(i in 1:nrow(golab)){
-    p <- p +
-      annotate(geom = "text", 
-               x = golab$x[i], y = golab$y[i],
-               label = golab$lab[i],
-               size = 5/.pt, color = "black",
-               hjust = 0, vjust = 0.5)
-  }
-  
   return(p)
 }
 
@@ -545,7 +536,7 @@ write.csv(go.sub, "results/99_paper-figures/fig4_single-cell/go_revio_disp-below
 
 
 go.sub <- go.sub[order(go.sub$enrichment, decreasing = TRUE), ]
-go.sub <- go.sub[1:75, ]
+go.sub <- go.sub[1:60, ]
 
 p <- tileplot_go(go.pdat.sub = go.sub)
 
@@ -580,7 +571,7 @@ tpan <- plot_grid(umap.all,
                   labels = c("A", "C"),
                   label_size = 8,
                   label_fontface = "bold") 
-bpan <- plot_grid(splitdot.test, p, rel_widths = c(4.5, 2.5), 
+bpan <- plot_grid(splitdot.test, p, rel_widths = c(4.3, 2.7), 
                   align = "none",
                   axis = "none", 
                   labels = c("B", "D"),
