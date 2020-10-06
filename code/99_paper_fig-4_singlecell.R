@@ -125,7 +125,7 @@ plot_umap <- function(object, title = NA, label = "none",
 }
 
 ## individual plots
-umap.all <- plot_umap(object = seur, label = "text", title = "All cells")
+umap.all <- plot_umap(object = seur, label = "text", title = "")
 umap.cntrl <- plot_umap(object = seur,
                         split = TRUE, split.by = "covid", split.plot = "cntrl",
                         title = "Control")
@@ -323,22 +323,6 @@ cowplot::ggsave2(
   width = 4.75, height = 6, units = "in"
   )
 
-grid.test <-  plot_grid(umap.v, splitdot.noT, axis = "t", rel_widths = c(2, 4.5), labels = c("a", "b"))
-cowplot::ggsave2(
-  grid.test, 
-  filename = "results/99_paper-figures/fig4_single-cell/grid-test.pdf", 
-  width = 6.5, height = 6, units = "in"
-)
-
-
-grid.test2 <- umap.v + splitdot.noT + plot_layout(widths = c(2, 5), heights = c(1,0)) 
-
-cowplot::ggsave2(
-  grid.test2, 
-  filename = "results/99_paper-figures/fig4_single-cell/grid-test2.pdf", 
-  width = 6.5, height = 6, units = "in"
-)
-
 ## Panel C: Interferome plot --------------------------------------------------
 # color by pval
 ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey40")
@@ -385,24 +369,23 @@ fig4$c <- ggplot(data = plot.dat,
             color = unique(plot.dat[, c("celltype", "color")])$color) +
   annotate(geom = "richtext", x  = 101, y = 22,
            size = 5/.pt,
-           label = "enrichment<br>*p* value",
+           label = "enrichment *p* value",
            hjust = 0, vjust = 0.25,
            fill = NA, label.color = NA, # remove background and outline
            label.padding = grid::unit(0, "pt")) + # remove padding
   theme_classic() +
   theme(
-    plot.margin = margin(20, 25, 6, 6),
-    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, size = 6, 
-                               color = "black"),
+    plot.margin = margin(6, 6, 6, 6),
+    axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, 
+                               size = 6, color = "black"),
     axis.text.x = element_text(size = 6, color = "black"),
     axis.title = element_text(size = 6),
     axis.title.y = element_blank(),
     axis.line = element_line(size = 0.25),
     axis.ticks.y = element_line(size = 0.25),
     axis.ticks.x = element_line(size = 0.25),
-    legend.direction = "horizontal",
-    legend.position = c(0.5, 1),
-    legend.justification = c(0.5, 0.25),
+    legend.direction = "vertical",
+    legend.position = "right",
     legend.background = element_blank(),
     legend.key.size = unit(0.5, "lines"),
     legend.title = element_text(size = 5.5),
@@ -441,37 +424,14 @@ go.pdat$enrichment <- (go.pdat$b / go.pdat$n) / (go.pdat$B / go.pdat$N)
 
 head(go.pdat)
 
-# theme for GO dotplot
-theme_GO <- theme(
-  panel.background = element_blank(),
-  text = element_text(color = "Black"),
-  panel.grid.major = element_line(size = 0.15, color = "Grey90"),
-  panel.border = element_blank(),
-  axis.line = element_line(size = 0.25, color = "Black"),
-  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 6, color = "Black"),
-  axis.text.y = element_text(size = 6, color = "Black"),
-  axis.title = element_blank(),
-  axis.ticks = element_line(size = 0.1, color = "Black"),
-  strip.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5, size = 6.5, color = "Black"),
-  legend.title = element_text(size = 6),
-  legend.direction = "vertical",
-  legend.box = "vertical",
-  legend.box.spacing = unit(0.2, "lines"),
-  legend.box.just = "left",
-  legend.position = "right",
-  legend.background = element_blank(),
-  legend.title.align = 0,
-  legend.text = element_text(size = 5.5),
-  legend.key.size = unit(0.5, "lines"),
-  legend.key = element_blank(),
-  legend.spacing.y = unit(0.2, "lines"),
-)
-
+# function
 tileplot_go <- function(go.pdat.sub) {
+  
+  go.pdat.sub <- unique(go.sub)
   
   # truncate long labels. do this first to retain factor levels
   go.pdat.sub$trunclab <- stringr::str_trunc(
-    paste0(go.pdat.sub$Description, " (", go.pdat.sub$ID, ")"), 
+    paste0(go.pdat.sub$Description, " ", go.pdat.sub$ID), 
     width = 50, side = "left")
   
   # clustering for ordering
@@ -493,21 +453,26 @@ tileplot_go <- function(go.pdat.sub) {
   
   go.pdat.sub$trunclab <- factor(go.pdat.sub$trunclab, 
                                     levels = rownames(cdat))
+  
+  golab <- data.frame(
+    x = 6,
+    y = 1:length(levels(go.pdat.sub$trunclab)),
+    lab = gsub("(.*)(GO:[0-9]*)", "\\2", levels(go.pdat.sub$trunclab))
+  )
+  
   # plot
   p <- ggplot(go.pdat.sub,
-              aes(x = trunclab, 
-                  y = celltype, 
-                  fill = -log10(p.adjust),
-                  label = round(enrichment, 0))) +
+              aes(x = celltype, 
+                  y = trunclab, 
+                  fill = -log10(p.adjust))) +
     geom_tile(color = "black") +
     scale_fill_gradient(low = colorRampPalette(c("White", "#4e79a7"))(10)[3],
                         high = colorRampPalette(c("White", "#4e79a7"))(10)[10],
                         name = "- log10 (adj. p)") +
-    #geom_text(size = 5/.pt) +
     coord_fixed() +
     theme_classic() +
     theme(
-      plot.margin = margin(6, 6, 0, 0),
+      plot.margin = margin(25, 25, 6, 6),
       axis.line = element_line(size = 0.25),
       axis.ticks = element_line(size = 0.25),
       panel.grid.major = element_line(size = 0.15),
@@ -515,7 +480,7 @@ tileplot_go <- function(go.pdat.sub) {
                                  size = 5, color = "black"),
       axis.title = element_blank(),
       axis.text.y = element_text(size = 5.25, color = "black"),
-      legend.position = c(1, 1),
+      legend.position = c(1.2, 1),
       legend.direction = "horizontal",
       legend.key.size = unit(0.5, "lines"),
       legend.justification = c(1, 0),
@@ -523,6 +488,15 @@ tileplot_go <- function(go.pdat.sub) {
       legend.text = element_text(size = 5),
       legend.title.align = 1
     )
+  
+  for(i in 1:nrow(golab)){
+    p <- p +
+      annotate(geom = "text", 
+               x = golab$x[i], y = golab$y[i],
+               label = golab$lab[i],
+               size = 5/.pt, color = "black",
+               hjust = 0, vjust = 0.5)
+  }
   
   return(p)
 }
@@ -561,10 +535,17 @@ leaf <- terminal(terms = as.character(revigo$term_ID[revigo$dispensability < 0.6
 length(leaf)
 
 # plotting subset
-#to.keep <- revigo$term_ID[revigo$dispensability < 0.65]
-go.sub <- go.pdat[go.pdat$ID %in% leaf, ]
+to.keep <- revigo$term_ID[revigo$dispensability < 0.75]
+# go.sub <- go.pdat[go.pdat$ID %in% leaf, ]
+go.sub <- go.pdat[go.pdat$ID %in% to.keep, ]
+# write to file to manually curate
+go.sub$chars <- stringr::str_count(go.sub$Description)
+write.csv(go.sub, "results/99_paper-figures/fig4_single-cell/go_revio_disp-below-0.75.csv", row.names = FALSE)
+
+
+
 go.sub <- go.sub[order(go.sub$enrichment, decreasing = TRUE), ]
-go.sub <- go.sub[1:60, ]
+go.sub <- go.sub[1:75, ]
 
 p <- tileplot_go(go.pdat.sub = go.sub)
 
@@ -591,25 +572,25 @@ ggsave(
 
 
 ### Arrange ===================================================================
-tpan <- plot_grid(umap.v + theme(plot.margin = margin(8, 6, 6, 0)), 
-                  splitdot.test, 
-                  rel_widths = c(2.1, 4.9), 
-                  align = "none",
-                  #axis = "b", 
-                  labels = c("A", "B"),
+tpan <- plot_grid(umap.all, 
+                  fig4$c, 
+                  rel_widths = c(3, 4), 
+                  align = "h",
+                  axis = "bt", 
+                  labels = c("A", "C"),
                   label_size = 8,
                   label_fontface = "bold") 
-bpan <- plot_grid(fig4$c, p, rel_widths = c(3, 4), 
+bpan <- plot_grid(splitdot.test, p, rel_widths = c(4.5, 2.5), 
                   align = "none",
                   axis = "none", 
-                  labels = c("C", "D"),
+                  labels = c("B", "D"),
                   label_size = 8,
                   label_fontface = "bold")
 
-full.test <- plot_grid(tpan, bpan, ncol = 1, rel_heights = c(6.5, 3))
+full.test <- plot_grid(tpan, bpan, ncol = 1, rel_heights = c(2.6, 6.9))
 
-ggsave(tpan, filename="results/99_paper-figures/fig4_single-cell/grid-test_top.png", width = 7, height = 6.5, units = "in")
-ggsave(bpan, filename="results/99_paper-figures/fig4_single-cell/grid-test_bottom.png", width = 7, height = 3, units = "in")
+ggsave(tpan, filename="results/99_paper-figures/fig4_single-cell/grid-test_top.png", width = 7, height = 3, units = "in", type = "cairo")
+ggsave(bpan, filename="results/99_paper-figures/fig4_single-cell/grid-test_bottom.png", width = 7, height = 6.5, units = "in", type = "cairo")
 
-ggsave(full.test, filename="results/99_paper-figures/fig4_single-cell/grid-test_full.png", width = 7, height = 9.5, units = "in")
+ggsave(full.test, filename="results/99_paper-figures/fig4_single-cell/grid-test_full.png", width = 7, height = 9.5, units = "in", type = "cairo", dpi = 300)
   
