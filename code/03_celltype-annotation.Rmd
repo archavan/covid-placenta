@@ -1418,6 +1418,7 @@ annotation %>% kable(caption = "Final annotations of all clusters") %>% kable_st
 ```
 ## Add annotations to `Seurat` object
 ```{r}
+# add annotations
 seur@meta.data$annotation <- annotation$annotation[match(
   x = seur@meta.data$seurat_clusters,
   table = annotation$cluster)
@@ -1428,6 +1429,35 @@ seur@meta.data$annotation_merged <- annotation$annotation_merged[match(
   table = annotation$cluster)
   ]
 
+```
+
+```{r}
+# add another column to metadata with renames orig.idents as COVID_1, CNTRL_1 instead of AL01, AL02, etc.
+AL_covid_mapping <- unique(seur@meta.data[, c("orig.ident", "covid")])
+
+AL_covid_mapping$renamed <- NA
+counter.covid <- 1
+counter.cntrl <- 1
+for(i in 1:nrow(AL_covid_mapping)) {
+  
+  if(AL_covid_mapping$covid[i] == "covid") {
+    AL_covid_mapping$renamed[i] <- paste0("COVID_", counter.covid)
+    counter.covid <- counter.covid + 1 
+  }
+  
+  if(AL_covid_mapping$covid[i] == "cntrl") {
+    AL_covid_mapping$renamed[i] <- paste0("CNTRL_", counter.cntrl)
+    counter.cntrl <- counter.cntrl + 1
+  }
+}
+
+seur@meta.data$orig.ident_renamed <- AL_covid_mapping$renamed[
+  match(x = seur@meta.data$orig.ident, 
+        table = AL_covid_mapping$orig.ident)
+]
+```
+
+```{r}
 # write seurat object
 saveRDS(seur, file = "../results/02_annotation/seurat-object_annotated.rds")
 ```
