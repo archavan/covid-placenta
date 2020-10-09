@@ -60,67 +60,64 @@ for(i in unique(cormat$Var2)){
   }
 }
 
-### heatmap plotting function =================================================
-clustAnnoPlot <- function(dat, query, reference){
-  
-  dat <- dat[which(dat$Var2_source == query & dat$Var1_source == reference), ]
-  
-  p <- ggplot(data = dat, 
-              aes(Var1, Var2, fill = value)) +
-    geom_tile(colour = "white") +
-    scale_fill_gradient(low = 'white', high = 'red',
-                        name = "Spearman\nCorrelation",
-                        limits = c(0.40, 0.95),
-                        breaks = c(0.40, 0.60, 0.80),
-                        labels = c("0.4", "0.6", "0.8")) +
-    geom_point(aes(Var1, Var2, alpha = top3),
-               size = 1, shape = 19, stroke  = 0) +
-    scale_alpha_manual(values = c(1, 0.5, 0.25), 
-                       breaks = c(1, 2, 3),
-                       name = "Top 3 match", na.value = 0) +
-    coord_fixed(ratio = 1) +
-    xlab("reference") +
-    ylab("query") +
-    theme_bw() +
-    theme(
-      axis.text.x = element_text(angle = 90, size = 5.5, 
-                                 hjust = 1, vjust = 0.5, color = "black"),
-      axis.text.y = element_text(size = 5.5, color = "black"),
-      axis.ticks = element_line(size = 0.25),
-      axis.ticks.length = unit(0.15, units = c('lines')),
-      axis.title = element_text(size = 7),
-      panel.grid = element_blank(),
-      panel.border = element_blank(),
-      legend.key.size = unit(0.8, units = c('lines')), 
-      legend.title = element_text(size = 6),
-      legend.text = element_text(size = 6),
-      plot.tag = element_text(size = 8, face = 2, color = "black"),
-      plot.margin = margin(0, 0, 0, 0) # helps alignment by panel area
-    )
-  
-  return(p)
-}
+### heatmap ===================================================================
+ann <- unique(seur@meta.data[, c("seurat_clusters", "annotation", "annotation_merged")])
 
-### individual plots ==========================================================
-surya.vento <- clustAnnoPlot(dat = cormat, query = "surya", reference = "vento") + labs(tag = "A") # between vento and surya
+plot.dat <- cormat %>% 
+  filter(Var1_source %in% c("pavli", "surya", "vento"), 
+         Var2_source %in% c("clust"))
 
-by.pavli <- clustAnnoPlot(dat = cormat, query = "clust", reference = "pavli") + labs(tag = "B")
-by.vento <- clustAnnoPlot(dat = cormat, query = "clust", reference = "vento") + labs(tag = "C")
-by.surya <- clustAnnoPlot(dat = cormat, query = "clust", reference = "surya") + labs(tag = "D")
+plot.dat$lab <- ann$annotation_merged[match(x = plot.dat$Var2, 
+                                            table = ann$seurat_clusters)]
+plot.dat$lab[!(plot.dat$Var1 %in% c("vento_HB"))] <- NA # this is a lazy hack to make geom_text add label only once. If this was filtered to Var1_source == vento, it would add 35 (number of vento clusters) labels on top of each other.
 
+facet.names <- c(
+  pavli = "Pavlicev et al",
+  surya = "Suryawanshi et al",
+  vento = "Vento-Tormo et al"
+)
 
-### arrange correlation plots =================================================
-layout <- c(area(t = 1,  l = 1,  b = 24, r = 32),
-            area(t = 1,  l = 33, b = 27, r = 32+8),
-            area(t = 3,  l = 41, b = 22, r = 50),
-            area(t = 31, l = 1,  b = 70, r = 32),
-            area(t = 31, l = 33, b = 70, r = 32+22))
+cor.plot <- ggplot(plot.dat, aes(Var1, Var2, fill = value)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient(low = 'white', high = 'red',
+                      name = "Spearman\nCorrelation",
+                      limits = c(0.40, 0.95),
+                      breaks = c(0.40, 0.60, 0.80),
+                      labels = c("0.4", "0.6", "0.8")) +
+  geom_point(aes(Var1, Var2, alpha = top3),
+             size = 1, shape = 19, stroke  = 0) +
+  scale_alpha_manual(values = c(1, 0.5, 0.25), 
+                     breaks = c(1, 2, 3),
+                     name = "Top 3 match", na.value = 0) +
+  facet_grid(. ~ Var1_source, scales = "free_x", space = "free_x",
+             labeller = as_labeller(facet.names)) +
+  coord_cartesian(clip = "off") +
+  geom_text(aes(label = lab), x = 33, size = 5.25/.pt, 
+            hjust = 0, color = "black") +
+  xlab("Reference") +
+  ylab("Query") +
+  theme_bw() +
+  theme(
+    aspect.ratio = 35,
+    strip.text = element_text(size = 7, color = "black"),
+    strip.background = element_blank(),
+    axis.text.x = element_text(angle = 90, size = 5.25, 
+                               hjust = 1, vjust = 0.5, color = "black"),
+    axis.text.y = element_text(size = 5.25, color = "black"),
+    axis.ticks = element_line(size = 0.25),
+    axis.ticks.length = unit(0.15, units = c('lines')),
+    axis.title = element_text(size = 7),
+    panel.grid = element_blank(),
+    panel.border = element_blank(),
+    legend.box.spacing = unit(2.5, "lines"),
+    legend.key.size = unit(0.65, units = c('lines')), 
+    legend.title = element_text(size = 6),
+    legend.text = element_text(size = 6)
+  )
 
-composite <- surya.vento  + by.pavli + guide_area() + by.vento + by.surya + 
-  plot_layout(guides = "collect", design = layout)
 
 cowplot::ggsave2(
-  composite, device = "pdf", width = 6.75, height = 8.25, units = "in",
+  cor.plot, device = "pdf", width = 7, height = 4.5, units = "in",
   filename = "results/99_paper-figures/supp-fig_annotation/supp-fig_annotation.pdf"
 )
 
@@ -156,7 +153,6 @@ cowplot::ggsave2(
 
 ### write associated supplementary files ======================================
 ## cluster annotations --------------------------------------------------------
-ann <- unique(seur@meta.data[, c("seurat_clusters", "annotation", "annotation_merged")]) 
 ann <- ann[order(ann$seurat_clusters), ]
 write.csv(ann, "results/99_paper-supp-files/cluster_annotations.csv", row.names = FALSE)
 
@@ -185,6 +181,7 @@ cellnum <- dplyr::rename(cellnum, "celltype" = "Var1")
 write.csv(cellnum, "results/99_paper-supp-files/n-cells_by-celltype-and-covid-status.csv", row.names = FALSE)
 
 ### end =======================================================================
+
 
 
 
