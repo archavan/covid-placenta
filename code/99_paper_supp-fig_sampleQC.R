@@ -31,6 +31,7 @@ theme2 <-   theme_classic() +
 
 theme_umap <- theme_classic() +
   theme(aspect.ratio = 1,
+        plot.margin = margin(0, 0, 0, 0),
         plot.tag = element_text(size = 8, face = 2),
         legend.title = element_text(size = 6),
         legend.text = element_text(size = 6),
@@ -115,7 +116,7 @@ ggobject <- DimPlot(seur, shuffle = TRUE, label = FALSE)
 umap.cntrl <- ggplot(
   data = ggobject$data[ggobject$data$ident == "cntrl", ],
   aes(x = UMAP_1, y = UMAP_2)) +
-  geom_point(size = 0.1, color = "grey") +
+  geom_point(size = 0.1, color = "grey40") +
   annotate(geom = "text", label = "Control", 
            x = Inf, y = -Inf, hjust = 1.25, vjust = -0.5, size = 8/.pt) +
   labs(tag = "E") +
@@ -124,7 +125,7 @@ umap.cntrl <- ggplot(
 umap.covid <- ggplot(
   data = ggobject$data[ggobject$data$ident == "covid", ],
   aes(x = UMAP_1, y = UMAP_2)) +
-  geom_point(size = 0.1, color = "grey") +
+  geom_point(size = 0.1, color = "grey40") +
   annotate(geom = "text", label = "Covid", 
            x = Inf, y = -Inf, hjust = 1.25, vjust = -0.5, size = 8/.pt) +
   theme_umap
@@ -135,7 +136,7 @@ row2 <- bar.sample
 row3 <- umap.sample + umap.cntrl + umap.covid + plot_layout(widths = c(1, 1, 1))
 
 composite <- row1 / row2 / row3 +
-  plot_layout(heights = c(2, 3, 1.75))
+  plot_layout(heights = c(2, 2.75, 1.75))
 
 cowplot::ggsave2(
   filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC.pdf",
