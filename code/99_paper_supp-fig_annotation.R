@@ -109,7 +109,7 @@ by.vento <- clustAnnoPlot(dat = cormat, query = "clust", reference = "vento") + 
 by.surya <- clustAnnoPlot(dat = cormat, query = "clust", reference = "surya") + labs(tag = "D")
 
 
-### arrange ===================================================================
+### arrange correlation plots =================================================
 layout <- c(area(t = 1,  l = 1,  b = 24, r = 32),
             area(t = 1,  l = 33, b = 27, r = 32+8),
             area(t = 3,  l = 41, b = 22, r = 50),
@@ -124,7 +124,38 @@ cowplot::ggsave2(
   filename = "results/99_paper-figures/supp-fig_annotation/supp-fig_annotation.pdf"
 )
 
+### UMAP figure, optional =====================================================
+# umap with full annotation and merged annotations side by side. 
 
+### write associated supplementary files ======================================
+## cluster annotations --------------------------------------------------------
+ann <- unique(seur@meta.data[, c("seurat_clusters", "annotation", "annotation_merged")]) 
+ann <- ann[order(ann$seurat_clusters), ]
+write.csv(ann, "results/99_paper-supp-files/cluster_annotations.csv", row.names = FALSE)
+
+## Cluster marker genes -------------------------------------------------------
+# marker genes are output from FindAllMarkers function, for all clusters, top genes upto logFC of 0.25. 
+markers <- read.csv("results/02_annotation/files/markers_sct.csv")
+
+# rename clusters from 0, 1 to clust_00, clust_01 etc.
+markers$cluster <- paste0("clust_", markers$cluster)
+markers$cluster <- gsub("(clust_)(\\d)$", "\\10\\2", markers$cluster)
+
+# rearrange columns
+markers <- markers[, c("cluster", "gene", "pct.1", "pct.2", "avg_logFC", "p_val", "p_val_adj")]
+
+# filter by adjusted p value
+markers <- markers %>% dplyr::filter(p_val_adj < 0.05)
+
+# write
+write.csv(markers, "results/99_paper-supp-files/cluster_marker-genes.csv", row.names = FALSE)
+
+## Number of cells of each celltype by control and covid status ---------------
+cellnum <- table(seur$annotation_merged, seur$covid) %>% as.data.frame()
+cellnum <- pivot_wider(data = cellnum, id_cols = "Var1", names_from = "Var2", values_from = "Freq")
+cellnum <- dplyr::rename(cellnum, "celltype" = "Var1")
+
+write.csv(cellnum, "results/99_paper-supp-files/n-cells_by-celltype-and-covid-status.csv", row.names = FALSE)
 
 ### end =======================================================================
 
