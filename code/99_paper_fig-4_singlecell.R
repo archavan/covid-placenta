@@ -47,8 +47,6 @@ for(i in celltypes){
 }
 
 ### Make individual plots =====================================================
-fig4 <- list()  # list for saving panels
-
 ## Panel A: UMAP --------------------------------------------------------------
 Idents(seur) <- seur@meta.data$annotation_merged
 
@@ -167,8 +165,11 @@ theme_dotplot <- theme(
                               size = 6, color = "Black"),
   strip.background = element_blank(),
   legend.title = element_text(size = 6),
-  legend.position = "right",
-  legend.box.spacing = unit(0.1, "lines"),
+  # legend.position = "right",
+  # legend.box.spacing = unit(0.1, "lines"),
+  legend.position = "bottom",
+  legend.direction = "vertical",
+  legend.box = "horizontal",
   legend.background = element_blank(),
   legend.title.align = 0,
   legend.text = element_text(size = 5),
@@ -308,15 +309,14 @@ select_genes <- function(n, exclude.celltypes) {
 }
 
 # plot
-numgenes <- 5
+numgenes <- 7
 features <- select_genes(n = numgenes, exclude.celltypes = exclude2)
 splitdot.test <- plot_splitdot(
   object = seur, 
   features = features,
   exclude.celltypes = exclude2
-) +
-  labs(caption = paste0(
-    length(features), " genes; top ", numgenes, " per cluster"))
+)
+
 cowplot::ggsave2(
   splitdot.test, 
   filename = paste0("results/99_paper-figures/fig4_single-cell/de-dotplot-options/de-dot_top", numgenes, "genes.pdf"), 
@@ -343,8 +343,8 @@ ifome.n.long$celltype <- factor(
 
 # plot
 plot.dat <- ifome.n.long
-fig4$c <- ggplot(data = plot.dat, 
-                 aes(y = celltype, x = pct)) +
+p.ifome <- ggplot(data = plot.dat, 
+                  aes(y = celltype, x = pct)) +
   geom_bar(aes(fill = interferome),
            position = "stack", 
            stat = "identity", 
@@ -367,15 +367,15 @@ fig4$c <- ggplot(data = plot.dat,
                 label = formatC(pval, format = "e", digits = 0)),
             hjust = 0, size = 5/.pt, nudge_x = 1,
             color = unique(plot.dat[, c("celltype", "color")])$color) +
-  annotate(geom = "richtext", x  = 101, y = 22,
+  annotate(geom = "richtext", x  = 102, y = 22,
            size = 5/.pt,
-           label = "enrichment *p* value",
+           label = "enrichment<br>*p* value",
            hjust = 0, vjust = 0.25,
            fill = NA, label.color = NA, # remove background and outline
            label.padding = grid::unit(0, "pt")) + # remove padding
   theme_classic() +
   theme(
-    plot.margin = margin(6, 6, 6, 6),
+    plot.margin = margin(17, 23, 6, 6),
     axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, 
                                size = 6, color = "black"),
     axis.text.x = element_text(size = 6, color = "black"),
@@ -384,15 +384,16 @@ fig4$c <- ggplot(data = plot.dat,
     axis.line = element_line(size = 0.25),
     axis.ticks.y = element_line(size = 0.25),
     axis.ticks.x = element_line(size = 0.25),
-    legend.direction = "vertical",
-    legend.position = "right",
+    legend.direction = "horizontal",
+    legend.position = c(0.5, 1),
+    legend.justification = c(0.5, 0),
     legend.background = element_blank(),
     legend.key.size = unit(0.5, "lines"),
     legend.title = element_text(size = 5.5),
     legend.text = element_text(size = 5)
-    )
+  )
 
-ggsave(fig4$c, 
+ggsave(p.ifome, 
        filename = "results/99_paper-figures/fig4_single-cell/panelC_interferome.pdf", 
        width = 3.2, height = 3, units = "in")
 
@@ -432,7 +433,7 @@ tileplot_go <- function(go.pdat.sub) {
   # truncate long labels. do this first to retain factor levels
   go.pdat.sub$trunclab <- stringr::str_trunc(
     paste0(go.pdat.sub$Description, " ", go.pdat.sub$ID), 
-    width = 50, side = "left")
+    width = 65, side = "left")
   
   # clustering for ordering
   cdat <- pivot_wider(data = go.pdat.sub, id_cols = "trunclab", 
@@ -469,10 +470,10 @@ tileplot_go <- function(go.pdat.sub) {
     scale_fill_gradient(low = colorRampPalette(c("White", "#4e79a7"))(10)[3],
                         high = colorRampPalette(c("White", "#4e79a7"))(10)[10],
                         name = "- log10 (adj. p)") +
-    coord_fixed() +
+    #coord_fixed() +
     theme_classic() +
     theme(
-      plot.margin = margin(25, 25, 6, 6),
+      plot.margin = margin(25, 6, 6, 6),
       axis.line = element_line(size = 0.25),
       axis.ticks = element_line(size = 0.25),
       panel.grid.major = element_line(size = 0.15),
@@ -536,9 +537,9 @@ write.csv(go.sub, "results/99_paper-figures/fig4_single-cell/go_revio_disp-below
 
 
 go.sub <- go.sub[order(go.sub$enrichment, decreasing = TRUE), ]
-go.sub <- go.sub[1:60, ]
+go.sub <- go.sub[1:40, ]
 
-p <- tileplot_go(go.pdat.sub = go.sub)
+p.go <- tileplot_go(go.pdat.sub = go.sub)
 
 go.sub$Description <- gsub("response", "resp.", go.sub$Description)
 go.sub$Description <- gsub("endoplasmic reticulum", "ER", go.sub$Description)
@@ -563,25 +564,32 @@ ggsave(
 
 
 ### Arrange ===================================================================
-tpan <- plot_grid(umap.all, 
-                  fig4$c, 
-                  rel_widths = c(3, 4), 
-                  align = "h",
-                  axis = "bt", 
-                  labels = c("A", "C"),
+layout <- c(area(t = 1, l = 1, b = 3, r = 3),
+            area(t = 1, l = 4, b = 8, r = 7),
+            area(t = 4, l = 1, b = 6, r = 3),
+            area(t = 7, l = 1, b = 9, r = 3))
+
+umap.all + splitdot.test + p.ifome + p.go +
+  plot_layout(guides = "keep", design = layout)
+
+ac.aligned <- align_plots(umap.all, p.ifome, align = "v", axis = "lr")
+
+col1 <- plot_grid(ac.aligned[[1]], 
+                  ac.aligned[[2]], 
+                  p.go,
+                  ncol = 1,
+                  rel_heights = c(2.5, 2.75, 3.5),
+                  align = "none",
+                  labels = c("A", "C", "D"),
                   label_size = 8,
                   label_fontface = "bold") 
-bpan <- plot_grid(splitdot.test, p, rel_widths = c(4.3, 2.7), 
-                  align = "none",
-                  axis = "none", 
-                  labels = c("B", "D"),
+
+col2 <- plot_grid(splitdot.test,
+                  labels = c("B"),
                   label_size = 8,
                   label_fontface = "bold")
 
-full.test <- plot_grid(tpan, bpan, ncol = 1, rel_heights = c(2.6, 6.9))
+full.test <- plot_grid(col1, col2, nrow = 1, rel_widths = c(3, 4))
 
-ggsave(tpan, filename="results/99_paper-figures/fig4_single-cell/grid-test_top.png", width = 7, height = 3, units = "in", type = "cairo")
-ggsave(bpan, filename="results/99_paper-figures/fig4_single-cell/grid-test_bottom.png", width = 7, height = 6.5, units = "in", type = "cairo")
-
-ggsave(full.test, filename="results/99_paper-figures/fig4_single-cell/grid-test_full.png", width = 7, height = 9.5, units = "in", type = "cairo", dpi = 300)
+ggsave(full.test, filename="results/99_paper-figures/fig4_single-cell/grid-test_full.png", width = 7, height = 9, units = "in", type = "cairo", dpi = 600)
   
