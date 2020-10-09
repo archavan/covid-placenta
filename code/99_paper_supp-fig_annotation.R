@@ -125,7 +125,34 @@ cowplot::ggsave2(
 )
 
 ### UMAP figure, optional =====================================================
-# umap with full annotation and merged annotations side by side. 
+# all annotations
+Idents(seur) <- "annotation"
+umap.full <- DimPlot(seur, label = TRUE, label.size = 6/.pt, shuffle = TRUE, repel = TRUE) + labs(tag = "A")
+
+# merged annotations
+Idents(seur) <- "annotation_merged"
+umap.merged <- DimPlot(seur, label = TRUE, label.size = 6/.pt, shuffle = TRUE, repel = TRUE) + labs(tag = "B")
+
+# arrange
+umaps <- umap.full + umap.merged + plot_layout(nrow = 1) &
+  theme_classic() +
+  theme(axis.line = element_line(size = 0.25),
+        axis.ticks = element_line(size = 0.25),
+        axis.text = element_text(size = 6),
+        axis.title = element_text(size = 6),
+        plot.tag = element_text(size = 8, face = 2),
+        legend.position = "none",
+        aspect.ratio = 1)
+
+cowplot::ggsave2(
+  umaps,
+  filename = "results/99_paper-figures/supp-fig_annotation/supp-fig_annotation-on-umap.pdf", width = 6.5, height = 3.25, units = "in"
+)
+
+cowplot::ggsave2(
+  umaps,
+  filename = "results/99_paper-figures/supp-fig_annotation/supp-fig_annotation-on-umap.png", width = 6.5, height = 3.25, units = "in", type = "cairo", dpi = 600
+)
 
 ### write associated supplementary files ======================================
 ## cluster annotations --------------------------------------------------------
