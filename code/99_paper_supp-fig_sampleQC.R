@@ -31,7 +31,7 @@ theme2 <-   theme_classic() +
 
 theme_umap <- theme_classic() +
   theme(aspect.ratio = 1,
-        plot.margin = margin(0, 0, 0, 0),
+        plot.margin = margin(6, 6, 6, 6),
         plot.tag = element_text(size = 8, face = 2),
         legend.title = element_text(size = 6),
         legend.text = element_text(size = 6),
@@ -104,7 +104,7 @@ ggobject <- DimPlot(seur, label = FALSE, shuffle = TRUE)
 umap.sample <- ggplot() +
   geom_point(data = ggobject$data, aes(x = UMAP_1, y = UMAP_2, color = ident),
              size = 0.1) +
-  labs(x = "UMAP 1", y = "UMAP 2", tag = "D") +
+  labs(x = "UMAP 1", y = "UMAP 2", tag = "E") +
   scale_color_discrete(name = "Sample",
                        guide = guide_legend(override.aes = list(size = 1))) +
   theme_umap
@@ -119,7 +119,7 @@ umap.cntrl <- ggplot(
   geom_point(size = 0.1, color = "grey40") +
   annotate(geom = "text", label = "Control", 
            x = Inf, y = -Inf, hjust = 1.25, vjust = -0.5, size = 8/.pt) +
-  labs(tag = "E") +
+  labs(tag = "D") +
   theme_umap
 
 umap.covid <- ggplot(
@@ -133,20 +133,22 @@ umap.covid <- ggplot(
 ### arrange ===================================================================
 row1 <- n.umi + n.gene + plot_layout(guides = "collect")
 row2 <- bar.sample 
-row3 <- umap.sample + umap.cntrl + umap.covid + plot_layout(widths = c(1, 1, 1))
+row3 <- umap.cntrl + umap.covid + umap.sample + plot_layout(widths = c(1, 1, 1))
 
 composite <- row1 / row2 / row3 +
-  plot_layout(heights = c(2, 2.75, 1.75))
+  plot_layout(heights = c(1.75, 2.5, 1.85)) &
+  theme(legend.justification = "left")
 
 cowplot::ggsave2(
   filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC.pdf",
   composite, 
-  width = 6.5, height = 6, units = "in"
+  width = 6, height = 6, units = "in"
 )
 
 cowplot::ggsave2(
   composite, 
   filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC.png",
-  width = 6.5, height = 6, units = "in", type = "cairo", dpi = 600
+  width = 6, height = 6, units = "in", type = "cairo", dpi = 600
 )
 
+### end  ======================================================================
