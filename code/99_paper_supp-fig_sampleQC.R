@@ -69,33 +69,45 @@ for(i in 1:nrow(cell.sample)) {
     sum(cell.sample$Freq[cell.sample$Var1 == cell.sample$Var1[i]])
 }
 
+stack.colors <- c("#6cb9a0",
+                  "#a90090",
+                  "#2abb3e",
+                  "#4140c3",
+                  "#a6d468",
+                  "#ff8dee",
+                  "#00b56e",
+                  "#b70048",
+                  "#39ddbe",
+                  "#e8591a",
+                  "#02aded",
+                  "#ba5600",
+                  "#68d6e3",
+                  "#ff6db4",
+                  "#00ba9d",
+                  "#ff8f94",
+                  "#4e5719",
+                  "#ffaf52",
+                  "#b27b5e",
+                  "#e2c36e",
+                  "#836400") # colors from https://medialab.github.io/iwanthue/
+
 bar.sample <- ggplot(data = cell.sample, 
                      aes(x = Var1, y = frac, fill = Var2)) +
   geom_bar(stat = "identity", width = 0.8) +
   scale_fill_manual(name = "Cell type", 
-                    values = c("#6cb9a0",
-                               "#a90090",
-                               "#2abb3e",
-                               "#4140c3",
-                               "#a6d468",
-                               "#ff8dee",
-                               "#00b56e",
-                               "#b70048",
-                               "#39ddbe",
-                               "#e8591a",
-                               "#02aded",
-                               "#ba5600",
-                               "#68d6e3",
-                               "#ff6db4",
-                               "#00ba9d",
-                               "#ff8f94",
-                               "#4e5719",
-                               "#ffaf52",
-                               "#b27b5e",
-                               "#e2c36e",
-                               "#836400")) + # colors from https://medialab.github.io/iwanthue/
+                    values = stack.colors) + 
   labs(x = "Sample", y = "Fraction of cells", tag = "C") +
   theme2
+
+# test stacked bar plot with default colours so that colours match between barplot and umap. 
+bar.sample1 <- ggplot(data = cell.sample, 
+                     aes(x = Var1, y = frac, fill = Var2)) +
+  geom_bar(stat = "identity", width = 0.8) +
+  labs(x = "Sample", y = "Fraction of cells", tag = "C") +
+  theme2
+ggsave(
+  filename = "results/99_paper-figures/supp-fig_sampleQC/stacked-bar_color-test.pdf", 
+  bar.sample1, width = 6, height = 2.75, units = "in")
 
 ## umap colored by sample -----------------------------------------------------
 Idents(seur) <- "orig.ident_renamed"

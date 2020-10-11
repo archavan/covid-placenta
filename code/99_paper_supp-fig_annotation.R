@@ -139,6 +139,38 @@ umap.merged <- DimPlot(seur, label = TRUE, label.size = 6/.pt, shuffle = TRUE, r
   theme.umap
 umap.merged$layers[[2]]$geom_params$segment.size <- 0.25
 
+# test umap plot with custom colours used in the stacked bar plot so that the colours match between plots
+stack.colors <- c("#6cb9a0",
+                  "#a90090",
+                  "#2abb3e",
+                  "#4140c3",
+                  "#a6d468",
+                  "#ff8dee",
+                  "#00b56e",
+                  "#b70048",
+                  "#39ddbe",
+                  "#e8591a",
+                  "#02aded",
+                  "#ba5600",
+                  "#68d6e3",
+                  "#ff6db4",
+                  "#00ba9d",
+                  "#ff8f94",
+                  "#4e5719",
+                  "#ffaf52",
+                  "#b27b5e",
+                  "#e2c36e",
+                  "#836400") # colors from https://medialab.github.io/iwanthue/
+Idents(seur) <- "annotation_merged"
+umap.merged1 <- DimPlot(seur, label = TRUE, label.size = 6/.pt, shuffle = TRUE, repel = TRUE, cols = stack.colors) + 
+  labs(tag = "C") +
+  theme.umap
+umap.merged1$layers[[2]]$geom_params$segment.size <- 0.25
+ggsave(
+  filename = "results/99_paper-figures/supp-fig_annotation/umap_colour-test.png",
+  umap.merged1, width = 3.5, height = 3.5, units = "in", type = "cairo"
+)
+
 ### arrange ===================================================================
 layout <- c(area(t = 1, l = 1, b = 45, r = 70),
             area(t = 46, l = 1, b = 80, r = 35),
