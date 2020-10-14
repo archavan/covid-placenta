@@ -145,7 +145,7 @@ theme_dotplot <- theme(
   # legend.position = "right",
   # legend.box.spacing = unit(0.1, "lines"),
   legend.position = "bottom",
-  legend.direction = "vertical",
+  legend.direction = "horizontal",
   legend.box = "horizontal",
   legend.background = element_blank(),
   legend.title.align = 0,
@@ -288,7 +288,7 @@ select_genes <- function(n, exclude.celltypes) {
 # plot
 numgenes <- 7
 features <- select_genes(n = numgenes, exclude.celltypes = exclude2)
-splitdot.test <- plot_splitdot(
+splitdot.7 <- plot_splitdot(
   object = seur, 
   features = features,
   exclude.celltypes = exclude2
