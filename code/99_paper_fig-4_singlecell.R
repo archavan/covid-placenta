@@ -11,7 +11,6 @@ library(Seurat)
 library(patchwork)
 library(ggthemes)
 library(ggrepel)
-library(ggforce) # for sina plots
 library(cowplot)
 library(ggtext)
 library(ungeviz) # for geom_hpline
@@ -124,28 +123,6 @@ plot_umap <- function(object, title = NA, label = "none",
 
 ## individual plots
 umap.all <- plot_umap(object = seur, label = "text", title = "")
-umap.cntrl <- plot_umap(object = seur,
-                        split = TRUE, split.by = "covid", split.plot = "cntrl",
-                        title = "Control")
-umap.covid <- plot_umap(object = seur,
-                        split = TRUE, split.by = "covid", split.plot = "covid",
-                        title = "Covid")
-
-## arrange 
-umap.v <- plot_grid(plotlist = list(umap.all, umap.cntrl, umap.covid), ncol = 1, axis = 'lr') # vertical
-umap.h <- plot_grid(plotlist = list(umap.all, umap.cntrl, umap.covid), nrow = 1, axis = 'tb')
-
-cowplot::ggsave2(
-  umap.v, 
-  filename = "results/99_paper-figures/fig4_single-cell/panelA_umap_composite_vertical.png", 
-  width = 2, height = 6, units = "in", type = "cairo"
-)
-
-cowplot::ggsave2(
-  umap.h, 
-  filename = "results/99_paper-figures/fig4_single-cell/panelA_umap_composite_horizontal.png", 
-  width = 6, height = 2, units = "in", type = "cairo"
-)
 
 ## Panel B: DE dotplot --------------------------------------------------------
 ## create celltype_covid ident to use for seurat dotplot
