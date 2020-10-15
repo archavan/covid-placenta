@@ -47,6 +47,30 @@ for(i in celltypes){
 
 ### Make individual plots =====================================================
 ## Panel A: UMAP --------------------------------------------------------------
+## colours for clusters to match with stacked barplot from supp. fig
+stack.colors <- c("#6cb9a0",
+                  "#a90090",
+                  "#2abb3e",
+                  "#4140c3",
+                  "#a6d468",
+                  "#ff8dee",
+                  "#00b56e",
+                  "#b70048",
+                  "#39ddbe",
+                  "#e8591a",
+                  "#02aded",
+                  "#ba5600",
+                  "#68d6e3",
+                  "#ff6db4",
+                  "#00ba9d",
+                  "#ff8f94",
+                  "#4e5719",
+                  "#ffaf52",
+                  "#b27b5e",
+                  "#e2c36e",
+                  "#836400") # colors from https://medialab.github.io/iwanthue/
+
+## set idents
 Idents(seur) <- seur@meta.data$annotation_merged
 
 # plotting fn
@@ -77,6 +101,7 @@ plot_umap <- function(object, title = NA, label = "none",
   p <- ggplot() +
     geom_point(data = udat, aes(x = UMAP_1, y = UMAP_2, color = ident),
                size = 0.1) +
+    scale_color_manual(values = stack.colors) +
     annotate(geom = "text", x = Inf, y = -Inf, label = title,
              hjust = 1, vjust = -1, size = 6/.pt, fontface = 1) +
     labs(x = "UMAP 1", y = "UMAP 2") +
@@ -103,7 +128,9 @@ plot_umap <- function(object, title = NA, label = "none",
                        fontface = 1, 
                        label.padding = unit(0.1, "lines"), 
                        label.r = 0,
-                       label.size = 0, seed = 10)
+                       label.size = 0, 
+                       seed = 10, 
+                       fill = alpha(c("white"), 0.65))
   }
   
   if(label == "text") {
@@ -122,7 +149,7 @@ plot_umap <- function(object, title = NA, label = "none",
 }
 
 ## individual plots
-umap.all <- plot_umap(object = seur, label = "text", title = "")
+umap.all <- plot_umap(object = seur, label = "label", title = "", )
 
 ## Panel B: DE dotplot --------------------------------------------------------
 ## create celltype_covid ident to use for seurat dotplot
@@ -152,7 +179,7 @@ theme_dotplot <- theme(
   legend.text = element_text(size = 5),
   legend.key.size = unit(0.5, "lines"),
   legend.key = element_blank(),
-  legend.spacing.y = unit(0.1, "lines"),
+#  legend.spacing.y = unit(0, "lines"),
   panel.spacing.x = unit(0, "lines")
 )
 
@@ -245,13 +272,24 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
                shape = 21, stroke = 0, 
                color = "White") +
     scale_fill_gradient(low = "White", high = "Red", 
-                        name = "avg.exp\n(scaled)") +
+                        name = "avg. exp. (scaled)",
+                        guide = guide_colorbar(
+                          title.position = "top", 
+                          title.hjust = 0.5
+                        )
+    ) +
     scale_x_discrete(breaks = c("cntrl", "covid"), 
                      labels = c("Control", "Covid")) +
     scale_size_area(max_size = 3.5,
-                    guide = guide_legend(override.aes = list(
-                      color = "White", 
-                      fill = "Black"))) +
+                    name = "% cells with exp.",
+                    guide = guide_legend(
+                      override.aes = list(
+                        color = "White", 
+                        fill = "Grey30"
+                      ),
+                      title.position = "top", title.hjust = 0.5
+                    )
+    ) +
     facet_grid(. ~ celltype) +
     ungeviz::geom_hpline(data = de.ann,
                          aes(y = gene, x = 1.5, color = diff.exp),
@@ -259,7 +297,9 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
     scale_color_manual(breaks = "true",
                        labels = "< 0.05",
                        values = "Black",
-                       name = "DE adj.p") +
+                       name = "DE adj.p",
+                       guide = guide_legend(title.position = "top",
+                                            title.hjust = 0.5)) +
     theme_dotplot
   
   return(q)
@@ -285,20 +325,24 @@ select_genes <- function(n, exclude.celltypes) {
   return(de.to.plot$gene %>% unique())
 }
 
-# plot
+## plot with T celss
 numgenes <- 7
 features <- select_genes(n = numgenes, exclude.celltypes = exclude2)
-splitdot.7 <- plot_splitdot(
+splitdot.top7 <- plot_splitdot(
   object = seur, 
   features = features,
   exclude.celltypes = exclude2
 )
 
-cowplot::ggsave2(
-  splitdot.test, 
-  filename = paste0("results/99_paper-figures/fig4_single-cell/de-dotplot-options/de-dot_top", numgenes, "genes.pdf"), 
-  width = 4.75, height = 6, units = "in"
-  )
+## plot without T cells
+numgenes <- 7
+features <- select_genes(n = numgenes, exclude.celltypes = exclude1)
+splitdot.top7.noTcells <- plot_splitdot(
+  object = seur, 
+  features = features,
+  exclude.celltypes = exclude1
+)
+
 
 ## Panel C: Interferome plot --------------------------------------------------
 # color by pval
@@ -370,13 +414,9 @@ p.ifome <- ggplot(data = plot.dat,
     legend.text = element_text(size = 5)
   )
 
-ggsave(p.ifome, 
-       filename = "results/99_paper-figures/fig4_single-cell/panelC_interferome.pdf", 
-       width = 3.2, height = 3, units = "in")
-
 ## Panel D: GO plot -----------------------------------------------------------
 ## prepare data
-# we  want only the following celltypes: dAPCs, monocytes, NK1, hoffbauers, cytotrophoblast
+# use only these celltypes: dAPCs, monocytes, NK1, hoffbauers, cytotrophoblast
 go.pdat <- de.go[c("dec.APC", "dec.Mono_1", "dec.Mono_2", "dec.NK_1", "vil.Hofb", "vil.VCT")]
 
 go.pdat <- do.call(rbind, go.pdat)
@@ -385,24 +425,28 @@ go.pdat$pvalue <- NULL
 go.pdat$geneID <- NULL
 rownames(go.pdat) <- NULL
 
-# calculate enrichment
-go.pdat$b <- as.numeric(sapply(
-  strsplit(go.pdat$GeneRatio, split = "/"), MARGIN = 1, FUN = '[['))
+## subset go list
+# write file and run it on revigo
+write.table(
+  go.pdat[, c("ID", "p.adjust")], 
+  file = "results/99_paper-figures/fig4_single-cell/go-for-revigo.txt", 
+  quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE
+)
 
-go.pdat$n <- as.numeric(sapply(
-  strsplit(go.pdat$GeneRatio, split = "/"), MARGIN = 2, FUN = '[['))
+# I went through the revigo output file, and using p value, uniqueness values, and intuition/judgment marked 29 GO categories as ones that should be kept -- others were either redundant or too non-specific to be informative, etc. The ones to keep are labeled as "1" in manual_keep column,
+revigo <- read.csv("results/99_paper-figures/fig4_single-cell/REVIGO_manual-filtering.csv")
 
-go.pdat$B <- as.numeric(sapply(
-  strsplit(go.pdat$BgRatio, split = "/"), MARGIN = 1, FUN = '[['))
 
-go.pdat$N <- as.numeric(sapply(
-  strsplit(go.pdat$BgRatio, split = "/"), MARGIN = 2, FUN = '[['))
+# plotting subset
+to.keep <- revigo$term_ID[which(revigo$manual_keep == 1)]
+go.sub <- go.pdat[go.pdat$ID %in% to.keep, ]
+go.sub$chars <- stringr::str_count(go.sub$Description) # this tells us that there are three Go term names that are too long for the plot (more than 60 characters or so), which we  will replace with shorter versions. To indicate that we have shortened them, we will surround the shortened versions with `[]`. And so that anybody who is interested in finding out what those actual GO terms were, we will add GO IDs to all GO terms, which will be shown in the plot. 
 
-go.pdat$enrichment <- (go.pdat$b / go.pdat$n) / (go.pdat$B / go.pdat$N)
+go.sub$Description[go.sub$Description == "establishment of protein localization to endoplasmic reticulum"] <- "[protein localization to endoplasmic reticulum]"
+go.sub$Description[go.sub$Description == "nuclear-transcribed mRNA catabolic process, nonsense-mediated decay"] <- "[mRNA catabolic process, nonsense-mediated decay]"
+go.sub$Description[go.sub$Description == "regulation of transcription from RNA polymerase II promoter in response to stress"] <- "[transcription by RNA pol II in response to stress]"
 
-head(go.pdat)
-
-# function
+## plotting function
 tileplot_go <- function(go.pdat.sub) {
   
   go.pdat.sub <- unique(go.sub)
@@ -432,12 +476,6 @@ tileplot_go <- function(go.pdat.sub) {
   go.pdat.sub$trunclab <- factor(go.pdat.sub$trunclab, 
                                     levels = rownames(cdat))
   
-  golab <- data.frame(
-    x = 6,
-    y = 1:length(levels(go.pdat.sub$trunclab)),
-    lab = gsub("(.*)(GO:[0-9]*)", "\\2", levels(go.pdat.sub$trunclab))
-  )
-  
   # plot
   p <- ggplot(go.pdat.sub,
               aes(x = celltype, 
@@ -450,7 +488,7 @@ tileplot_go <- function(go.pdat.sub) {
     #coord_fixed() +
     theme_classic() +
     theme(
-      plot.margin = margin(25, 6, 6, 6),
+      plot.margin = margin(25, 15, 6, 6),
       axis.line = element_line(size = 0.25),
       axis.ticks = element_line(size = 0.25),
       panel.grid.major = element_line(size = 0.15),
@@ -470,87 +508,12 @@ tileplot_go <- function(go.pdat.sub) {
   return(p)
 }
 
-
-
-
-##----
-
-# write file and run it on revigo
-write.table(
-  go.pdat[, c("ID", "p.adjust")], 
-  file = "results/99_paper-figures/fig4_single-cell/go-for-revigo.txt", 
-  quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
-
-revigo <- read.csv("results/99_paper-figures/fig4_single-cell/REVIGO.csv")
-
-terminal <- function(terms, ontology=c("C", "P", "F"))
-{
-  FUN <- switch(match.arg(ontology),  
-                C = GOCCPARENTS,
-                P = GOBPPARENTS, 
-                F = GOMFPARENTS)
-  terminal <- terms
-  seen <- c(terms, "all")
-  while (length(terms)) {
-    seen <- c(terms, seen)
-    terms <- mappedRkeys(FUN[terms])
-    terminal <- terminal[!terminal %in% terms]
-    terms <- terms[!terms %in% seen]
-  }
-  terminal
-}
-
-leaf <- terminal(terms = as.character(revigo$term_ID[revigo$dispensability < 0.6]), ontology = "P")
-length(leaf)
-
-# plotting subset
-to.keep <- revigo$term_ID[revigo$dispensability < 0.75]
-# go.sub <- go.pdat[go.pdat$ID %in% leaf, ]
-go.sub <- go.pdat[go.pdat$ID %in% to.keep, ]
-# write to file to manually curate
-go.sub$chars <- stringr::str_count(go.sub$Description)
-write.csv(go.sub, "results/99_paper-figures/fig4_single-cell/go_revio_disp-below-0.75.csv", row.names = FALSE)
-
-
-
-go.sub <- go.sub[order(go.sub$enrichment, decreasing = TRUE), ]
-go.sub <- go.sub[1:40, ]
-
+# plot
 p.go <- tileplot_go(go.pdat.sub = go.sub)
 
-go.sub$Description <- gsub("response", "resp.", go.sub$Description)
-go.sub$Description <- gsub("endoplasmic reticulum", "ER", go.sub$Description)
-go.sub$Description <- gsub("regulation", "reg", go.sub$Description)
-
-
-
-ggsave(
-  p, 
-  filename = "results/99_paper-figures/fig4_single-cell/test_go.pdf",
-  width = 3.5, height = 3, units = "in"
-)
-
-ggsave(
-  p, 
-  filename = "../results/04_de-genes-by-celltype/logfc_0.40/go/plots/go_dotplot_revigo.pdf",
-  width = 5.75, height = 6, units = "in"
-)
-
-
-
-
-
 ### Arrange ===================================================================
-layout <- c(area(t = 1, l = 1, b = 3, r = 3),
-            area(t = 1, l = 4, b = 8, r = 7),
-            area(t = 4, l = 1, b = 6, r = 3),
-            area(t = 7, l = 1, b = 9, r = 3))
-
-umap.all + splitdot.test + p.ifome + p.go +
-  plot_layout(guides = "keep", design = layout)
-
+## version with T cells (but not Tcell_3 -- too few cells)
 ac.aligned <- align_plots(umap.all, p.ifome, align = "v", axis = "lr")
-
 col1 <- plot_grid(ac.aligned[[1]], 
                   ac.aligned[[2]], 
                   p.go,
@@ -561,12 +524,31 @@ col1 <- plot_grid(ac.aligned[[1]],
                   label_size = 8,
                   label_fontface = "bold") 
 
-col2 <- plot_grid(splitdot.test,
+col2 <- plot_grid(splitdot.top7,
                   labels = c("B"),
                   label_size = 8,
                   label_fontface = "bold")
 
-full.test <- plot_grid(col1, col2, nrow = 1, rel_widths = c(3, 4))
+composite <- plot_grid(col1, col2, nrow = 1, rel_widths = c(3, 4))
 
-ggsave(full.test, filename="results/99_paper-figures/fig4_single-cell/grid-test_full.png", width = 7, height = 9, units = "in", type = "cairo", dpi = 600)
+cowplot::ggsave2(
+  filename="results/99_paper-figures/fig4_single-cell/fig04_composite.png",
+  composite, 
+  width = 7, height = 9, units = "in", type = "cairo", dpi = 600
+)
+
+## version without any T cells
+col2.2 <- plot_grid(splitdot.top7.noTcells,
+                    labels = c("B"),
+                    label_size = 8,
+                    label_fontface = "bold")
+
+composite.2 <- plot_grid(col1, col2.2, nrow = 1, rel_widths = c(3, 4))
+
+cowplot::ggsave2(
+  filename="results/99_paper-figures/fig4_single-cell/fig04_composite_noTcells.png",
+  composite.2, 
+  width = 7, height = 9, units = "in", type = "cairo", dpi = 600
+)
   
+### end =======================================================================
