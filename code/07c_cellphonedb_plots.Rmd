@@ -1,0 +1,156 @@
+---
+title: "Receptor-ligand interactions using CellPhoneDB"
+author: "Arun Chavan"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    number_sections: true
+bibliography: ../refs.bib
+---
+Started: 2020-10-20   
+Last edited: `r format(Sys.time())`
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+# Overview
+The goal of this analysis is to find out if cellular communication mediated by receptor-ligand interactions is different between control and covid samples. For this we use [CellPhoneDB](https://www.cellphonedb.org/) tool developed by [@efremova_cellphonedb_2020]. CellPhoneDB is both a repository a curated receptors, ligands and their interactions, and a python package for extracting enriched receptor-ligand interactions between pairs of clusters in single cell RNA-seq data. 
+
+# Running CellPhoneDB
+## How it works
+For every receptor-ligand pair and for every pair of clusters in the data, CellPhoneDB calculates the mean expression of the receptor and the ligand between the two clusters in question (the mean is set to 0 if either receptor or ligand expression is 0). To test whether the interaction is specific to these two clusters, it shuffles the cluster labels of cells a defined number of times, each time calculating the mean expression of R and L to generate a null distribution. Based on this null distribution, it calculates a *p* value for observed mean expression. Note that a non-significant *p* value does not mean that the interaction is not present, but that it is not highly specific to the pair of clusters.
+
+## Running it
+I ran it using the python package, separately for covid and control cells from our dataset, following the instruction from here: https://github.com/Teichlab/cellphonedb. The code used for generating the input files and for running CellPhoneDB is in `./code/`. Generation of input files had to be done on the cluster because my computer could not handle it. Running CellPhoneDB also should have ideally been done on the cluster but because I did not have the R environment properly set up on the cluster, the final steps (plot generation using `pheatmap`) failed, so I ended up running it on my computer. The data needed to be subsampled (subsampled both control and covid to 5000 cells) for it to run in a reasonable time---it took ~3 hours per sample after subsampling. The output is saved in `./results/06_cellphonedb/out`. 
+
+## Output files
+```{r}
+cntrl <- list()
+cntrl$count <- read.table("../results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
+cntrl$sig.means <- read.table("../results/06_cellphonedb/out/cntrl/significant_means.txt", header = TRUE, sep = "\t", quote = "")
+
+
+covid <- list()
+covid$count <- read.table("../results/06_cellphonedb/out/covid/count_network.txt", header = TRUE, sep = "\t", quote = "")
+covid$sig.means <- read.table("../results/06_cellphonedb/out/covid/significant_means.txt", header = TRUE, sep = "\t", quote = "")
+```
+
+# Plots
+## Number of interactions
+We'll remake the plots using CellPhoneDB output files. The first plot we'll make is of the number of interactions between each pair of cell types. 
+
+### functions
+```{r}
+reorder_clusters <- function(p.dat) {
+  
+  # clustering for ordering
+  cdat <- pivot_wider(data =  p.dat, id_cols = "SOURCE", names_from = "TARGET", values_from = "count")
+  
+  cdat <- as.data.frame(cdat)
+  rownames(cdat) <- cdat$SOURCE
+  cdat$SOURCE <- NULL
+  
+  cor.matrix <- cor(t(cdat))
+  
+  # reorder correlation matrix based on clustering
+  dd <- as.dist((1 - cor.matrix)) 
+  hc <- hclust(dd, method = 'complete')
+  cdat  <- cdat[hc$order, ]
+  
+  p.dat$SOURCE <- factor(p.dat$SOURCE, levels = rownames(cdat))
+  p.dat$TARGET <- factor(p.dat$TARGET, levels = rownames(cdat))
+  
+  return(p.dat)
+}
+```
+
+```{r}
+theme_heatmap <- theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        legend.key.size = unit(0.75, "lines"))
+```
+
+
+### Control
+```{r}
+cntrl$count %>% 
+  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  reorder_clusters() %>% 
+ggplot(., aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = count)) +
+  scale_fill_gradient(low = "white", high = "#d6604d") +
+  coord_fixed() +
+  theme_heatmap
+```
+
+### Covid
+```{r}
+covid$count %>% 
+  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  reorder_clusters() %>% 
+  ggplot(., aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = count)) +
+  scale_fill_gradient(low = "white", high = "#d6604d") +
+  coord_fixed() +
+  theme_heatmap
+```
+
+### Difference between covid and control
+Now we'll plot the difference in the number of interactions between covid and control cells. 
+
+```{r}
+# create a dataset of differences
+count.diff <- inner_join(x = cntrl$count, y = covid$count, 
+                         by = c("SOURCE", "TARGET"),
+                         suffix = c(".cntrl", ".covid"))
+count.diff$diff <- count.diff$count.covid - count.diff$count.cntrl
+count.diff$fc <- count.diff$count.covid / count.diff$count.cntrl
+```
+
+```{r}
+# plot difference in number of interactions (covid - control)
+count.diff %>% 
+  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  select(SOURCE, TARGET, diff) %>% 
+  rename("count" = "diff") %>% 
+  reorder_clusters() %>% 
+  ggplot(., aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = count)) +
+  scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d6604d", 
+                       midpoint = 0,
+                       name = "diff = covid - control") +
+  coord_fixed() +
+  theme_heatmap
+```
+
+```{r}
+# plot log fold change in interactions (covid / control)
+count.diff %>% 
+  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  mutate(logfc = log(fc)) %>% 
+  select(SOURCE, TARGET, logfc) %>% 
+  rename("count" = "logfc") %>% 
+  reorder_clusters() %>% 
+  ggplot(., aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = count)) +
+  scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d6604d", 
+                       midpoint = 0,
+                       name = "log(covid/control)") +
+  coord_fixed() +
+  theme_heatmap
+```
+
+
+# Session Info
+```{r}
+sessionInfo()
+```
+
+# References
