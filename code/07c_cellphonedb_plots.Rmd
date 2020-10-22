@@ -29,12 +29,13 @@ I ran it using the python package, separately for covid and control cells from o
 ```{r}
 cntrl <- list()
 cntrl$count <- read.table("../results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
-cntrl$sig.means <- read.table("../results/06_cellphonedb/out/cntrl/significant_means.txt", header = TRUE, sep = "\t", quote = "")
-
+cntrl$means <- read.table("../results/06_cellphonedb/out/cntrl/means.txt", header = TRUE, sep = "\t", quote = "")
+cntrl$pvals <- read.table("../results/06_cellphonedb/out/cntrl/pvalues.txt", header = TRUE, sep = "\t", quote = "")
 
 covid <- list()
 covid$count <- read.table("../results/06_cellphonedb/out/covid/count_network.txt", header = TRUE, sep = "\t", quote = "")
-covid$sig.means <- read.table("../results/06_cellphonedb/out/covid/significant_means.txt", header = TRUE, sep = "\t", quote = "")
+covid$means <- read.table("../results/06_cellphonedb/out/covid/means.txt", header = TRUE, sep = "\t", quote = "")
+covid$pvals <- read.table("../results/06_cellphonedb/out/covid/pvalues.txt", header = TRUE, sep = "\t", quote = "")
 ```
 
 # Plots
@@ -114,14 +115,17 @@ count.diff$fc <- count.diff$count.covid / count.diff$count.cntrl
 
 ```{r}
 # plot difference in number of interactions (covid - control)
-count.diff %>% 
+p.dat <- count.diff %>% 
   filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
   filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
   select(SOURCE, TARGET, diff) %>% 
-  rename("count" = "diff") %>% 
-  reorder_clusters() %>% 
-  ggplot(., aes(SOURCE, TARGET)) +
-  geom_tile(aes(fill = count)) +
+  arrange(diff)
+
+p.dat$SOURCE <- factor(p.dat$SOURCE, levels = rev(p.dat$SOURCE) %>% unique())
+p.dat$TARGET <- factor(p.dat$TARGET, levels = rev(p.dat$SOURCE) %>% unique())
+  
+ggplot(p.dat, aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = diff)) +
   scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d6604d", 
                        midpoint = 0,
                        name = "diff = covid - control") +
@@ -129,17 +133,21 @@ count.diff %>%
   theme_heatmap
 ```
 
+
 ```{r}
-# plot log fold change in interactions (covid / control)
-count.diff %>% 
+# plot log fold change in number of interactions
+p.dat <- count.diff %>% 
   filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
   filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  select(SOURCE, TARGET, fc) %>%
   mutate(logfc = log(fc)) %>% 
-  select(SOURCE, TARGET, logfc) %>% 
-  rename("count" = "logfc") %>% 
-  reorder_clusters() %>% 
-  ggplot(., aes(SOURCE, TARGET)) +
-  geom_tile(aes(fill = count)) +
+  arrange(logfc)
+
+p.dat$SOURCE <- factor(p.dat$SOURCE, levels = rev(p.dat$SOURCE) %>% unique())
+p.dat$TARGET <- factor(p.dat$TARGET, levels = rev(p.dat$SOURCE) %>% unique())
+  
+ggplot(p.dat, aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = logfc)) +
   scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d6604d", 
                        midpoint = 0,
                        name = "log(covid/control)") +
