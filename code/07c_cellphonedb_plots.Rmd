@@ -163,7 +163,9 @@ CellPhoneDB output contains a dot plot where gene pairs are on one axis, cell ty
 
 1. Given than interactions among immune cell types increase in covid, we can try to plot only the cell type pairs with these immune cells. 
 2. Instead of plotting them separately for control and covid, we can plot the ligand receptor interactions that are present in covid samples but absent in control samples. 
+
 ### Prepare data
+
 ```{r}
 # melt means and pvals for cntrl and covid
 cntrl$means.long <- pivot_longer(data = cntrl$means, 
@@ -232,6 +234,7 @@ covid$unique.immune <- covid$unique.immune %>%
 
 
 ### Plot
+
 ```{r fig.asp=1.9, fig.width=5}
 ggplot(covid$unique.immune, aes(celltype.pair, interacting_pair)) +
   geom_point(aes(color = log(mean), size = -log10(pval+0.001)), shape = 19) +
