@@ -20,6 +20,9 @@ library(ungeviz) # for geom_hpline
 seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
 celltypes <- seur@meta.data$annotation_merged %>% unique()
 
+## ref data for annotation
+ref <- read.csv("results/01_reference-atlas/vento-surya-pavli_joined.csv", stringsAsFactors = FALSE)
+
 ## DE genes
 de.genes <- list()
 for(i in celltypes){
@@ -145,7 +148,108 @@ plot_umap <- function(object, title = NA, label = "none",
 ## individual plots
 umap.all <- plot_umap(object = seur, label = "label", title = "", )
 
-## Panel B: DE dotplot --------------------------------------------------------
+## panel B: annotation by correlation: vento ----------------------------------
+## average by cluster
+Idents(seur) <- "seurat_clusters"
+plac <- AverageExpression(seur) %>% .[["SCT"]]
+
+## get data in shape 
+plac$gene_name <- rownames(plac)
+plac <- dplyr::inner_join(plac, 
+                          dplyr::select(ref, "gene_name", contains("vento")), 
+                          by = "gene_name")
+plac <- dplyr::relocate(plac, gene_name)
+
+# build correlation matrix from expression data
+cor.matrix <- cor(plac[, names(plac)[names(plac) != "gene_name"]], 
+                  method = 'spearman')
+
+# reorder correlation matrix based on clustering
+dd <- as.dist((1 - cor.matrix))
+hc <- hclust(dd, method = 'complete')
+cor.matrix <- cor.matrix[hc$order, hc$order]
+
+# melt correlation matrix
+cormat <- reshape2::melt(cor.matrix, na.rm = T)
+cormat$Var1_source <- sapply(strsplit(as.character(cormat$Var1), split = "_"), "[[", 1)
+cormat$Var2_source <- sapply(strsplit(as.character(cormat$Var2), split = "_"), "[[", 1)
+
+# subset
+# cormat <- cormat[which(cormat$Var1_source %in% refdata & 
+#                          cormat$Var2_source == "clust"), ]
+
+cormat$top3 <- NA
+
+for(i in unique(cormat$Var2)){
+  for(j in c("vento")){
+    # identify top3 match indices
+    ind <- which(cormat$Var2 == i & cormat$Var1_source == j)
+    val <- cormat$value[ind]
+    top3ind <- ind[order(val, decreasing = TRUE)[1:3]]
+    
+    # assign match ranking to correlation data for plotting
+    cormat$top3[top3ind[1]] <- "1"
+    cormat$top3[top3ind[2]] <- "2"
+    cormat$top3[top3ind[3]] <- "3"
+  }
+}
+
+## heatmap 
+ann <- unique(seur@meta.data[, c("seurat_clusters", "annotation", "annotation_merged")])
+
+plot.dat <- cormat %>% 
+  filter(Var1_source %in% c("vento"), 
+         Var2_source %in% c("clust"))
+
+plot.dat$lab <- ann$annotation_merged[match(x = plot.dat$Var2, 
+                                            table = ann$seurat_clusters)]
+plot.dat$lab[!(plot.dat$Var1 %in% c("vento_HB"))] <- NA # this is a lazy hack to make geom_text add label only once. If this was filtered to Var1_source == vento, it would add 35 (number of vento clusters) labels on top of each other.
+
+cor.plot <- ggplot(plot.dat, aes(Var1, Var2, fill = value)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient(low = 'white', high = 'red',
+                      name = "Spearman Correlation",
+                      limits = c(0.40, 0.95),
+                      breaks = c(0.40, 0.60, 0.80),
+                      labels = c("0.4", "0.6", "0.8")) +
+  geom_point(aes(Var1, Var2, alpha = top3),
+             size = 1, shape = 19, stroke  = 0) +
+  scale_alpha_manual(values = c(1, 0.5, 0.25), 
+                     breaks = c(1, 2, 3),
+                     name = "Top 3 match", na.value = 0) +
+  guides(alpha = guide_legend(override.aes = list(size = 1.5),
+                              title.position="top", 
+                              title.hjust = 0),
+         fill = guide_colorbar(title.position = "top", 
+                               title.hjust = 1, 
+                               frame.colour = "black", 
+                               frame.linewidth = 0.25, 
+                               ticks.colour = "black", 
+                               ticks.linewidth = 0.25)) +
+  coord_cartesian(clip = "off") +
+  geom_text(aes(label = lab), x = 33, size = 5.25/.pt, 
+            hjust = 0, color = "black") +
+  labs(x = "Reference", y = "Query") +
+  theme_bw() +
+  theme(
+    aspect.ratio = 1,
+    axis.text.x = element_text(angle = 90, size = 5.25, 
+                               hjust = 1, vjust = 0.5, color = "black"),
+    axis.text.y = element_text(size = 5.25, color = "black"),
+    axis.ticks = element_line(size = 0.25),
+    axis.ticks.length = unit(0.15, units = c('lines')),
+    axis.title = element_text(size = 6),
+    panel.grid = element_blank(),
+    panel.border = element_rect(size = 0.25, colour = "black"),
+    legend.key.size = unit(0.5, units = c('lines')), 
+    legend.title = element_text(size = 5.5),
+    legend.text = element_text(size = 5),
+    legend.position = "top",
+    legend.box.spacing = unit(0, "lines"),
+    legend.background = element_blank()
+  )
+
+## Panel C: DE dotplot --------------------------------------------------------
 ## create celltype_covid ident to use for seurat dotplot
 seur$celltype_covid <- paste0(seur$annotation_merged, "_", seur$covid)
 
@@ -154,21 +258,22 @@ theme_dotplot <- theme(
   panel.background = element_blank(),
   text = element_text(color = "Black"),
   panel.grid = element_blank(),
-  panel.border = element_rect(fill = NA, size = 0.15, color = "grey60"),
-  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 6, color = "Black"),
-  axis.text.y = element_text(size = 5.5, color = "Black"),
+  panel.border = element_rect(fill = NA, size = 0.15, color = "black"),
+  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "Black"),
+  axis.text.y = element_text(size = 5, color = "Black"),
   axis.title = element_blank(),
   axis.ticks = element_line(size = 0.1, color = "Black"),
   strip.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5, 
-                              size = 6, color = "Black"),
+                              size = 5.25, color = "Black"),
   strip.background = element_blank(),
-  legend.title = element_text(size = 6),
+  legend.title = element_text(size = 5.25),
   # legend.position = "right",
   # legend.box.spacing = unit(0.1, "lines"),
   legend.position = "bottom",
   legend.direction = "horizontal",
   legend.box = "horizontal",
   legend.background = element_blank(),
+  legend.box.spacing = unit(0, "lines"),
   legend.title.align = 0,
   legend.text = element_text(size = 5),
   legend.key.size = unit(0.5, "lines"),
@@ -274,7 +379,7 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
     ) +
     scale_x_discrete(breaks = c("cntrl", "covid"), 
                      labels = c("Control", "Covid")) +
-    scale_size_area(max_size = 3.5,
+    scale_size_area(max_size = 2.5,
                     name = "% cells with exp.",
                     guide = guide_legend(
                       override.aes = list(
@@ -320,25 +425,25 @@ select_genes <- function(n, exclude.celltypes) {
 }
 
 ## plot with T celss
-numgenes <- 7
+numgenes <- 5
 features <- select_genes(n = numgenes, exclude.celltypes = exclude2)
-splitdot.top7 <- plot_splitdot(
+splitdot.top5 <- plot_splitdot(
   object = seur, 
   features = features,
   exclude.celltypes = exclude2
 )
 
 ## plot without T cells
-numgenes <- 7
+numgenes <- 5
 features <- select_genes(n = numgenes, exclude.celltypes = exclude1)
-splitdot.top7.noTcells <- plot_splitdot(
+splitdot.top5.noTcells <- plot_splitdot(
   object = seur, 
   features = features,
   exclude.celltypes = exclude1
 )
 
 
-## Panel C: Interferome plot --------------------------------------------------
+## Panel D: Interferome plot --------------------------------------------------
 # color by pval
 ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey40")
 
@@ -408,7 +513,7 @@ p.ifome <- ggplot(data = plot.dat,
     legend.text = element_text(size = 5)
   )
 
-## Panel D: CellPhoneDB results -----------------------------------------------
+## Panel E: CellPhoneDB results -----------------------------------------------
 # create a dataset of differences
 count.fc <- inner_join(x = cpdb.cntrl, y = cpdb.covid, 
                        by = c("SOURCE", "TARGET"),
@@ -449,19 +554,23 @@ cpdb <- count.fc %>%
 
 ### Arrange ===================================================================
 ## version with T cells (but not Tcell_3 -- too few cells)
-acd.aligned <- align_plots(umap.all, p.ifome, cpdb, align = "v", axis = "lr")
-col1 <- plot_grid(acd.aligned[[1]], 
-                  acd.aligned[[2]],
-                  acd.aligned[[3]],
+ade.aligned <- align_plots(umap.all, p.ifome, cpdb, align = "v", axis = "lr")
+col1 <- plot_grid(ade.aligned[[1]], 
+                  ade.aligned[[2]],
+                  ade.aligned[[3]],
                   ncol = 1,
                   rel_heights = c(2.75, 2.75, 3),
                   align = "none",
-                  labels = c("A", "C", "D"),
+                  labels = c("A", "D", "E"),
                   label_size = 8,
                   label_fontface = "bold") 
 
-col2 <- plot_grid(splitdot.top7,
-                  labels = c("B"),
+bc.aligned <- align_plots(cor.plot, splitdot.top5, align = "v", axis = "lr")
+col2 <- plot_grid(bc.aligned[[1]],
+                  bc.aligned[[2]],
+                  ncol = 1,
+                  rel_heights = c(4, 5),
+                  labels = c("B", "C"),
                   label_size = 8,
                   label_fontface = "bold")
 
@@ -473,9 +582,14 @@ cowplot::ggsave2(
   width = 7, height = 9, units = "in", type = "cairo", dpi = 600
 )
 
-## version without any T cells
-col2.2 <- plot_grid(splitdot.top7.noTcells,
-                    labels = c("B"),
+ ## version without any T cells
+bc.aligned.2 <- align_plots(cor.plot, splitdot.top5.noTcells, 
+                            align = "v", axis = "lr")
+col2.2 <- plot_grid(bc.aligned.2[[1]],
+                    bc.aligned.2[[2]],
+                    ncol = 1,
+                    rel_heights = c(4, 5),
+                    labels = c("B", "C"),
                     label_size = 8,
                     label_fontface = "bold")
 
