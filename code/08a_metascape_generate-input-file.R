@@ -43,14 +43,14 @@ meta %>%
 meta %>% 
   select("dec.APC", "dec.Mono_1", "dec.Mono_2", "dec.NK_1", "dec.NK_2", "dec.NK_3", "dec.Tcell_1", "dec.Tcell_2", "vil.Hofb") %>% 
   write.csv(.,
-            "results/07_metascape_input-file_immune-celltypes.csv",
+            "results/07_metascape/metascape_input-file_immune-celltypes.csv",
             row.names = FALSE)
 
 # subset of celltypes: only innate immune celltypes
 meta %>% 
   select("dec.APC", "dec.Mono_1", "dec.Mono_2", "dec.NK_1", "dec.NK_2", "dec.NK_3", "vil.Hofb") %>% 
   write.csv(.,
-            "results/07_metascape_input-file_innate-immune-celltypes.csv",
+            "results/07_metascape/metascape_input-file_innate-immune-celltypes.csv",
             row.names = FALSE)
 
 ### end  ======================================================================
