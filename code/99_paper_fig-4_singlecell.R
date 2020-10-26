@@ -15,9 +15,6 @@ library(cowplot)
 library(ggtext)
 library(ungeviz) # for geom_hpline
 
-# go
-library(GO.db)
-
 ### data ======================================================================
 ## Seurat
 seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
@@ -36,14 +33,9 @@ for(i in celltypes){
 ## Interferome output
 ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
 
-## GO output
-de.go <- list()
-for(i in celltypes){
-  de.go[[i]] <- read.csv(
-    paste0("results/04_de-genes-by-celltype/logfc_0.40/go/files/enrichedGO_", i, ".csv")
-  )
-  de.go[[i]]$celltype <- i
-}
+## CellphoneDB output
+cpdb.cntrl <- read.table("results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
+cpdb.covid <- read.table("results/06_cellphonedb/out/covid/count_network.txt", header = TRUE, sep = "\t", quote = "")
 
 ### Make individual plots =====================================================
 ## Panel A: UMAP --------------------------------------------------------------
@@ -106,13 +98,15 @@ plot_umap <- function(object, title = NA, label = "none",
              hjust = 1, vjust = -1, size = 6/.pt, fontface = 1) +
     labs(x = "UMAP 1", y = "UMAP 2") +
     theme_classic() +
-    theme(aspect.ratio = 1,
-          legend.position = "none",
-          panel.grid = element_blank(),
-          axis.text = element_blank(),
-          axis.title = element_text(size = 5),
-          axis.line = element_line(size = 0.25),
-          axis.ticks = element_blank())
+    theme(
+      aspect.ratio = 1,
+      legend.position = "none",
+      panel.grid = element_blank(),
+      axis.text = element_blank(),
+      axis.title = element_text(size = 5),
+      axis.line = element_line(size = 0.25),
+      axis.ticks = element_blank()
+    )
   
   if(label == "none") {
     p <- p
@@ -414,111 +408,53 @@ p.ifome <- ggplot(data = plot.dat,
     legend.text = element_text(size = 5)
   )
 
-## Panel D: GO plot -----------------------------------------------------------
-## prepare data
-# use only these celltypes: dAPCs, monocytes, NK1, hoffbauers, cytotrophoblast
-go.pdat <- de.go[c("dec.APC", "dec.Mono_1", "dec.Mono_2", "dec.NK_1", "vil.Hofb", "vil.VCT")]
-
-go.pdat <- do.call(rbind, go.pdat)
-
-go.pdat$pvalue <- NULL
-go.pdat$geneID <- NULL
-rownames(go.pdat) <- NULL
-
-## subset go list
-# write file and run it on revigo
-write.table(
-  go.pdat[, c("ID", "p.adjust")], 
-  file = "results/99_paper-figures/fig4_single-cell/go-for-revigo.txt", 
-  quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE
-)
-
-# I went through the revigo output file, and using p value, uniqueness values, and intuition/judgment marked 29 GO categories as ones that should be kept -- others were either redundant or too non-specific to be informative, etc. The ones to keep are labeled as "1" in manual_keep column,
-revigo <- read.csv("results/99_paper-figures/fig4_single-cell/REVIGO_manual-filtering.csv")
+## Panel D: CellPhoneDB results -----------------------------------------------
+# create a dataset of differences
+count.fc <- inner_join(x = cpdb.cntrl, y = cpdb.covid, 
+                       by = c("SOURCE", "TARGET"),
+                       suffix = c(".cntrl", ".covid"))
+count.fc$fc <- count.fc$count.covid / count.fc$count.cntrl
 
 
-# plotting subset
-to.keep <- revigo$term_ID[which(revigo$manual_keep == 1)]
-go.sub <- go.pdat[go.pdat$ID %in% to.keep, ]
-go.sub$chars <- stringr::str_count(go.sub$Description) # this tells us that there are three Go term names that are too long for the plot (more than 60 characters or so), which we  will replace with shorter versions. To indicate that we have shortened them, we will surround the shortened versions with `[]`. And so that anybody who is interested in finding out what those actual GO terms were, we will add GO IDs to all GO terms, which will be shown in the plot. 
-
-go.sub$Description[go.sub$Description == "establishment of protein localization to endoplasmic reticulum"] <- "[protein localization to endoplasmic reticulum]"
-go.sub$Description[go.sub$Description == "nuclear-transcribed mRNA catabolic process, nonsense-mediated decay"] <- "[mRNA catabolic process, nonsense-mediated decay]"
-go.sub$Description[go.sub$Description == "regulation of transcription from RNA polymerase II promoter in response to stress"] <- "[transcription by RNA pol II in response to stress]"
-
-## plotting function
-tileplot_go <- function(go.pdat.sub) {
+# plot log fold change in number of interactions
+cpdb <- count.fc %>% 
+  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  select(SOURCE, TARGET, fc) %>%
+  mutate(logfc = log(fc)) %>% 
+  arrange(logfc) %>% 
+  mutate(SOURCE = factor(SOURCE, levels = rev(.$SOURCE) %>% unique())) %>% 
+  mutate(TARGET = factor(TARGET, levels = rev(.$TARGET) %>% unique())) %>% 
   
-  go.pdat.sub <- unique(go.sub)
-  
-  # truncate long labels. do this first to retain factor levels
-  go.pdat.sub$trunclab <- stringr::str_trunc(
-    paste0(go.pdat.sub$Description, " ", go.pdat.sub$ID), 
-    width = 65, side = "left")
-  
-  # clustering for ordering
-  cdat <- pivot_wider(data = go.pdat.sub, id_cols = "trunclab", 
-                      names_from = celltype, values_from = p.adjust)
-  cdat[, 2:ncol(cdat)] <- apply(cdat[, 2:ncol(cdat)], 
-                                MARGIN = 2, FUN = function(x){replace_na(x, 1)})
-  
-  cdat <- as.data.frame(cdat)
-  rownames(cdat) <- cdat$trunclab
-  cdat$trunclab <- NULL
-  
-  cor.matrix <- cor(t(cdat))
-  
-  dd <- as.dist((1 - cor.matrix)) 
-  hc <- hclust(dd, method = 'complete')
-  
-  cdat <- cdat[hc$order, ]
-  
-  go.pdat.sub$trunclab <- factor(go.pdat.sub$trunclab, 
-                                    levels = rownames(cdat))
-  
-  # plot
-  p <- ggplot(go.pdat.sub,
-              aes(x = celltype, 
-                  y = trunclab, 
-                  fill = -log10(p.adjust))) +
-    geom_tile(color = "black") +
-    scale_fill_gradient(low = colorRampPalette(c("White", "#4e79a7"))(10)[3],
-                        high = colorRampPalette(c("White", "#4e79a7"))(10)[10],
-                        name = "- log10 (adj. p)") +
-    #coord_fixed() +
-    theme_classic() +
-    theme(
-      plot.margin = margin(25, 15, 6, 6),
-      axis.line = element_line(size = 0.25),
-      axis.ticks = element_line(size = 0.25),
-      panel.grid.major = element_line(size = 0.15),
-      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, 
-                                 size = 5, color = "black"),
-      axis.title = element_blank(),
-      axis.text.y = element_text(size = 5.25, color = "black"),
-      legend.position = c(1.2, 1),
-      legend.direction = "horizontal",
-      legend.key.size = unit(0.5, "lines"),
-      legend.justification = c(1, 0),
-      legend.title = element_text(size = 5),
-      legend.text = element_text(size = 5),
-      legend.title.align = 1
-    )
-  
-  return(p)
-}
-
-# plot
-p.go <- tileplot_go(go.pdat.sub = go.sub)
+  ggplot(., aes(SOURCE, TARGET)) +
+  geom_tile(aes(fill = logfc)) +
+  scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d6604d", 
+                       midpoint = 0,
+                       name = "log(covid/control)") +
+  theme_bw() +
+  theme(
+    aspect.ratio = 1,
+    panel.border = element_rect(size = 0.25, colour = "black"),
+    axis.ticks = element_line(size = 0.25),
+    axis.title = element_blank(),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 6, color = "black"),
+    axis.text.y = element_text(color = "black", size = 6),
+    legend.key.size = unit(0.4, "lines"),
+    legend.title = element_text(size = 5.5, color = "black"),
+    legend.text = element_text(size = 5, color = "black"),
+    legend.position = "top",
+    legend.box.spacing = unit(0, "lines"),
+    legend.background = element_blank()
+  )
 
 ### Arrange ===================================================================
 ## version with T cells (but not Tcell_3 -- too few cells)
-ac.aligned <- align_plots(umap.all, p.ifome, align = "v", axis = "lr")
-col1 <- plot_grid(ac.aligned[[1]], 
-                  ac.aligned[[2]], 
-                  p.go,
+acd.aligned <- align_plots(umap.all, p.ifome, cpdb, align = "v", axis = "lr")
+col1 <- plot_grid(acd.aligned[[1]], 
+                  acd.aligned[[2]],
+                  acd.aligned[[3]],
                   ncol = 1,
-                  rel_heights = c(2.5, 2.75, 3.5),
+                  rel_heights = c(2.75, 2.75, 3),
                   align = "none",
                   labels = c("A", "C", "D"),
                   label_size = 8,
