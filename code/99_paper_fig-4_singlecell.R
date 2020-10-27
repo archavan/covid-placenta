@@ -102,7 +102,7 @@ plot_umap <- function(object, title = NA, label = "none",
     labs(x = "UMAP 1", y = "UMAP 2") +
     theme_classic() +
     theme(
-      aspect.ratio = 1,
+#      aspect.ratio = 1,
       legend.position = "none",
       panel.grid = element_blank(),
       axis.text = element_blank(),
@@ -232,7 +232,6 @@ cor.plot <- ggplot(plot.dat, aes(Var1, Var2, fill = value)) +
   labs(x = "Reference", y = "Query") +
   theme_bw() +
   theme(
-    aspect.ratio = 1,
     axis.text.x = element_text(angle = 90, size = 5.25, 
                                hjust = 1, vjust = 0.5, color = "black"),
     axis.text.y = element_text(size = 5.25, color = "black"),
@@ -538,7 +537,7 @@ cpdb <- count.fc %>%
                        name = "log(covid/control)") +
   theme_bw() +
   theme(
-    aspect.ratio = 1,
+#    aspect.ratio = 1,
     panel.border = element_rect(size = 0.25, colour = "black"),
     axis.ticks = element_line(size = 0.25),
     axis.title = element_blank(),
@@ -601,4 +600,37 @@ cowplot::ggsave2(
   width = 7, height = 9, units = "in", type = "cairo", dpi = 600
 )
   
+### try different panel arrangements ==========================================
+r1.aln <- align_plots(cor.plot + 
+                        theme(plot.margin = margin(6, 50, 6, 6)), 
+                      p.ifome, align = "h", axis = "tb")
+r1 <- plot_grid(r1.aln[[1]], r1.aln[[2]],
+                ncol = 2, 
+                rel_widths = c(3.5, 3.25),
+                labels = c("A", "D"),
+                label_size = 8, 
+                label_fontface = "bold")
+c1.aln <- align_plots(umap.all, cpdb, align = "v", axis = "lr")
+c1 <- plot_grid(c1.aln[[1]], c1.aln[[2]],
+                ncol = 1, 
+                rel_heights = c(0.9, 1.2),
+                labels = c("B", "C"),
+                label_size = 8, 
+                label_fontface = "bold")
+c2 <- plot_grid(splitdot.top5,
+                ncol = 1,
+                labels = c("E"),
+                label_size = 8, 
+                label_fontface = "bold")
+r2 <- plot_grid(c1, c2, 
+                ncol = 2, 
+                rel_widths = c(2.6, 4.4))
+
+comp.opt2 <- plot_grid(r1, r2, nrow = 2, rel_heights = c(3.8, 5.2))
+
+cowplot::ggsave2(
+  filename="results/99_paper-figures/fig4_single-cell/fig04_composite_option2.png",
+  comp.opt2, 
+  width = 7, height = 9, units = "in", type = "cairo", dpi = 600
+)
 ### end =======================================================================
