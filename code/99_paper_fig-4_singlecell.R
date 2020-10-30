@@ -143,17 +143,15 @@ theme_dotplot <- theme(
   panel.background = element_blank(),
   text = element_text(color = "Black"),
   panel.grid = element_blank(),
-  panel.border = element_rect(fill = NA, size = 0.15, color = "black"),
+  panel.border = element_rect(fill = NA, size = 0.25, color = "grey"),
   axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "Black"),
   axis.text.y = element_text(size = 5, color = "Black"),
   axis.title = element_blank(),
-  axis.ticks = element_line(size = 0.1, color = "Black"),
+  axis.ticks = element_line(size = 0.25, color = "grey"),
   strip.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5, 
                               size = 5.25, color = "Black"),
   strip.background = element_blank(),
   legend.title = element_text(size = 5.25),
-  # legend.position = "right",
-  # legend.box.spacing = unit(0.1, "lines"),
   legend.position = "bottom",
   legend.direction = "horizontal",
   legend.box = "horizontal",
@@ -163,7 +161,6 @@ theme_dotplot <- theme(
   legend.text = element_text(size = 5),
   legend.key.size = unit(0.5, "lines"),
   legend.key = element_blank(),
-#  legend.spacing.y = unit(0, "lines"),
   panel.spacing.x = unit(0, "lines")
 )
 
@@ -179,7 +176,6 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
     assay = "SCT", 
     features = features
     )
-  
   
   # extract plotting data
   p.dat <- p$data
@@ -255,15 +251,16 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
     geom_point(aes(fill = scaled.new, size = pct.exp), 
                shape = 21, stroke = 0, 
                color = "White") +
-    scale_fill_gradient(low = "White", high = "Red", 
+    scale_fill_gradient(low = "White", high = "#d94801", 
                         name = "avg. exp. (scaled)",
                         guide = guide_colorbar(
                           title.position = "top", 
-                          title.hjust = 0.5
+                          title.hjust = 0.5, 
+                          ticks.colour = "black"
                         )
     ) +
     scale_x_discrete(breaks = c("cntrl", "covid"), 
-                     labels = c("Control", "Covid")) +
+                     labels = c("ctrl", "COVID")) +
     scale_size_area(max_size = 2.5,
                     name = "% cells with exp.",
                     guide = guide_legend(
@@ -291,8 +288,7 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
 }
 
 ## exclude celltypes lists ----------------------------------------------------
-exclude1 <- c("dec.Tcell_1", "dec.Tcell_2", "dec.Tcell_3", "dec.Bcells", "dec.Gran", "vil.Ery")
-exclude2 <- c("dec.Tcell_3", "dec.Bcells", "dec.Gran", "vil.Ery")
+exclude <- c("dec.Tcell_3", "dec.Bcells", "dec.Gran", "vil.Ery")
 
 ## select genes to plot: top x number of genes from clusters of interest ------
 de.genes <- lapply(de.genes,  # sort de.genes by logfc
@@ -309,22 +305,19 @@ select_genes <- function(n, exclude.celltypes) {
   return(de.to.plot$gene %>% unique())
 }
 
-## plot with T celss ----------------------------------------------------------
+## plot -----------------------------------------------------------------------
 numgenes <- 5
-features <- select_genes(n = numgenes, exclude.celltypes = exclude2)
+features <- select_genes(n = numgenes, exclude.celltypes = exclude)
 splitdot.top5 <- plot_splitdot(
   object = seur, 
   features = features,
-  exclude.celltypes = exclude2
+  exclude.celltypes = exclude
 )
 
-## plot without T cells -------------------------------------------------------
-numgenes <- 5
-features <- select_genes(n = numgenes, exclude.celltypes = exclude1)
-splitdot.top5.noTcells <- plot_splitdot(
-  object = seur, 
-  features = features,
-  exclude.celltypes = exclude1
+cowplot::ggsave2(
+  splitdot.top5,
+  filename = "results/99_paper-figures/fig4_single-cell/04b_splitdot-top5genes.pdf",
+  width = 4, height = 5.5, units = "in"
 )
 
 ### Interferome plot ==========================================================
