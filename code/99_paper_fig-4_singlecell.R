@@ -329,7 +329,7 @@ cowplot::ggsave2(
 ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
 
 ## color by pval --------------------------------------------------------------
-ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey40")
+ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey75")
 
 ## tidy -----------------------------------------------------------------------
 ifome.n.long <- pivot_longer(
@@ -353,7 +353,7 @@ p.ifome <- ggplot(data = plot.dat,
            position = "stack", 
            stat = "identity", 
            width = 0.8) +
-  scale_fill_manual(values = c("grey90", "#4e79a7"), 
+  scale_fill_manual(values = c("grey90", "#74add1"), # #4e79a7
                     breaks = c("no", "yes"),
                     name = "Interferome", 
                     labels = c("No", "Yes")) +
@@ -364,12 +364,14 @@ p.ifome <- ggplot(data = plot.dat,
   geom_text(data = plot.dat[plot.dat$interferome == "yes", ], # number of genes
             aes(y = celltype, x = pct, 
                 label = paste0(n, "/", n_de)),
-            size = 5/.pt, vjust = 0.5, hjust = 0.0, nudge_x = 0.5) +
+            size = 4.5/.pt, vjust = 0.5, hjust = 0.0, nudge_x = 0.5) +
   geom_text(data = plot.dat[, c("celltype", "pval")] %>% 
               unique(), # pvalues
             aes(y = celltype, x = 100, 
                 label = formatC(pval, format = "e", digits = 0)),
-            hjust = 0, size = 5/.pt, nudge_x = 1,
+            hjust = 0, 
+            size = 5/.pt, 
+            nudge_x = 1,
             color = unique(plot.dat[, c("celltype", "color")])$color) +
   annotate(geom = "richtext", x  = 102, y = 22,
            size = 5/.pt,
@@ -379,23 +381,29 @@ p.ifome <- ggplot(data = plot.dat,
            label.padding = grid::unit(0, "pt")) + # remove padding
   theme_classic() +
   theme(
-    plot.margin = margin(17, 23, 6, 6),
+    plot.margin = margin(6, 23, 6, 6),
     axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, 
-                               size = 6, color = "black"),
-    axis.text.x = element_text(size = 6, color = "black"),
-    axis.title = element_text(size = 6),
+                               size = 5, color = "black"),
+    axis.text.x = element_text(size = 5, color = "black"),
+    axis.title = element_text(size = 5.25),
     axis.title.y = element_blank(),
     axis.line = element_line(size = 0.25),
     axis.ticks.y = element_line(size = 0.25),
     axis.ticks.x = element_line(size = 0.25),
     legend.direction = "horizontal",
-    legend.position = c(0.5, 1),
-    legend.justification = c(0.5, 0),
+    legend.position = "top",
+    legend.box.spacing = unit(0, "lines"),
     legend.background = element_blank(),
     legend.key.size = unit(0.5, "lines"),
-    legend.title = element_text(size = 5.5),
+    legend.title = element_text(size = 5.25),
     legend.text = element_text(size = 5)
   )
+
+cowplot::ggsave2(
+  p.ifome,
+  filename = "results/99_paper-figures/fig4_single-cell/04c_interferome.pdf",
+  width = 3, height = 2.75, units = "in"
+)
 
 ### CellPhoneDB results =======================================================
 ## data -----------------------------------------------------------------------
