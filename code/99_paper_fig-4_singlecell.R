@@ -103,6 +103,10 @@ umap <- ggplot() +
                    label.size = NA, # https://stackoverflow.com/questions/43417514/getting-rid-of-border-in-pdf-output-for-geom-label-for-ggplot2-in-r
                    seed = 0, 
                    fill = alpha(c("white"), 0.7)) +
+  annotate(geom = "text", x = Inf, y = -14.25, label = "dec = decidual",
+           hjust = 1, color = "black", size = 5/.pt) +
+  annotate(geom = "text", x = Inf, y = -15.25, label = "vil = villous",
+           hjust = 1, color = "black", size = 5/.pt) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
