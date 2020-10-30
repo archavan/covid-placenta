@@ -17,7 +17,6 @@ library(ungeviz) # for geom_hpline
 
 ### UMAP ======================================================================
 ## data -----------------------------------------------------------------------
-## Seurat
 seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
 celltypes <- seur@meta.data$annotation_merged %>% unique()
 
@@ -44,90 +43,88 @@ stack.colors <- c("#6cb9a0",
                   "#e2c36e",
                   "#836400") # colors from https://medialab.github.io/iwanthue/
 
-## set idents
+## extract plotting data -------------------------------------------------------
 Idents(seur) <- seur@meta.data$annotation_merged
 
-# plotting fn
-plot_umap <- function(object, title = NA, label = "none", 
-                      split = FALSE, split.by, split.plot, ...){
-  
-  if(split == FALSE){
-    ggobject <- DimPlot(object, label = TRUE, shuffle = TRUE, ...)
-    
-    udat <- ggobject$data # point coordinates
-    ulab <- ggobject$layers[[2]]$data # label coordinates
-  }
-  
-  if(split == TRUE){
-    ggobject <- DimPlot(object, split.by = as.character(split.by),
-                        label = TRUE, shuffle = TRUE, ...)
-    
-    udat <- ggobject$data[eval(
-      expr(`$`(ggobject$data, !!split.by))
-    ) == split.plot, ] # geom point coordinates
-    
-    ulab <- ggobject$layers[[2]]$data[eval(
-      expr(`$`(ggobject$layers[[2]]$data, !!split.by))
-    ) == split.plot, ] # label coordinates
-  }  # see section 19.4 https://adv-r.hadley.nz/quasiquotation.html
-  
-  # plot
-  p <- ggplot() +
-    geom_point(data = udat, aes(x = UMAP_1, y = UMAP_2, color = ident),
-               size = 0.1) +
-    scale_color_manual(values = stack.colors) +
-    annotate(geom = "text", x = Inf, y = -Inf, label = title,
-             hjust = 1, vjust = -1, size = 6/.pt, fontface = 1) +
-    labs(x = "UMAP 1", y = "UMAP 2") +
-    theme_classic() +
-    theme(
-#      aspect.ratio = 1,
-      legend.position = "none",
-      panel.grid = element_blank(),
-      axis.text = element_blank(),
-      axis.title = element_text(size = 5),
-      axis.line = element_line(size = 0.25),
-      axis.ticks = element_blank()
-    )
-  
-  if(label == "none") {
-    p <- p
-  }
-  
-  if(label == "label") {
-    p <- p + 
-      geom_label_repel(data = ulab, 
-                       aes(x = UMAP_1, y = UMAP_2, label = ident),
-                       size = 5/.pt,
-                       segment.size = 0.2, segment.color = "black",
-                       force = 1,
-                       fontface = 1, 
-                       label.padding = unit(0.1, "lines"), 
-                       label.r = 0,
-                       label.size = 0, 
-                       seed = 10, 
-                       fill = alpha(c("white"), 0.65))
-  }
-  
-  if(label == "text") {
-    p <- p + 
-      geom_text_repel(data = ulab, 
-                      aes(x = UMAP_1, y = UMAP_2, label = ident),
-                      size = 5/.pt,
-                      segment.size = 0.2, segment.color = "black",
-                      force = 1,
-                      fontface = 1, 
-                      seed = 10)
-  }
-  
-  return(p)
-  
-}
+umap.gg <- DimPlot(seur, label = TRUE, shuffle = TRUE) # save ggplot object, extract plotting data from it, and plot independently with ggplot. 
+udat <- umap.gg$data # point coordinates
+ulab <- umap.gg$layers[[2]]$data # label coordinates
 
-## individual plots
-umap.all <- plot_umap(object = seur, label = "label", title = "", )
+ulab <- ulab[order(as.character(ulab$ident)), ]
+ulab$newcolours <- stack.colors
+ulab <- mutate(ulab, 
+               "full_lab" = case_when(
+                 ident == "dec.APC" ~ "dec.APC (Antigen presenting cell)",
+                 ident == "dec.Bcells" ~ "dec.Bcells (B cell)",
+                 ident == "dec.DSC" ~ "dec.DSC (Decidual stromal cell)",
+                 ident == "dec.Endo" ~ "dec.Endo (Endothelial)",
+                 ident == "dec.FB" ~ "dec.FB (Fibroblast)",
+                 ident == "dec.Gran" ~ "dec.Gran (Granulocyte)",
+                 ident == "dec.Mono_1" ~ "dec.Mono_1 (Monocyte)",
+                 ident == "dec.Mono_2" ~ "dec.Mono_2",
+                 ident == "dec.NK_1" ~ "dec.NK_1 (Natural killer)",
+                 ident == "dec.NK_2" ~ "dec.NK_2",
+                 ident == "dec.NK_3" ~ "dec.NK_3",
+                 ident == "dec.SMC" ~ "dec.SMC (Smooth muscle cell)",
+                 ident == "dec.Tcell_1" ~ "dec.Tcell_1 (T cell)",
+                 ident == "dec.Tcell_2" ~ "dec.Tcell_2",
+                 ident == "dec.Tcell_3" ~ "dec.Tcell_3",
+                 ident == "vil.Ery" ~ "vil.Ery (Erythrocyte/blast)",
+                 ident == "vil.EVT" ~  "vil.EVT (Extravillous trophoblast)",
+                 ident == "vil.FB" ~ "vil.FB (Fibroblast)",
+                 ident == "vil.Hofb" ~ "vil.Hofb (Hofbauer)",
+                 ident == "vil.SCT" ~ "vil.SCT (Syncytial trophoblast)",
+                 ident == "vil.VCT" ~ "vil.VCT (Villous cytotropphoblast)"
+               ))
 
-### DE dotplot ================================================================
+udat$ident <- factor(udat$ident, levels = ulab$ident)
+
+## plot -----------------------------------------------------------------------
+umap <- ggplot() +
+  geom_point(data = udat, 
+             aes(x = UMAP_1, y = UMAP_2, color = ident),
+             size = 0.1) +
+  scale_color_manual(values = alpha(ulab$newcolours, 1), 
+                     breaks = ulab$ident, 
+                     labels = ulab$full_lab) +
+  guides(color = guide_legend(override.aes = list(size = 1.5),
+                              keyheight = unit(0.5, "lines"), 
+                              keywidth = unit(0, "lines"),
+                              ncol = 1)) +
+  labs(x = "UMAP 1", y = "UMAP 2") +
+  geom_label_repel(data = ulab, 
+                   aes(x = UMAP_1, y = UMAP_2, label = ident),
+                   size = 5/.pt,
+                   segment.size = 0.2, segment.color = "black",
+                   force = 1,
+                   fontface = 1, 
+                   label.padding = unit(0.1, "lines"), 
+                   label.r = 0,
+                   label.size = NA, # https://stackoverflow.com/questions/43417514/getting-rid-of-border-in-pdf-output-for-geom-label-for-ggplot2-in-r
+                   seed = 0, 
+                   fill = alpha(c("white"), 0.7)) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "right",
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_text(size = 5),
+    axis.line = element_line(size = 0.25),
+    axis.ticks = element_blank(),
+    legend.text = element_text(size = 5),
+    legend.title = element_blank(),
+    legend.background = element_blank(),
+    legend.box.spacing = unit(0, "lines")
+  )
+
+cowplot::ggsave2(
+  umap,
+  filename = "results/99_paper-figures/fig4_single-cell/04a_umap.pdf",
+  width = 4, height = 2.75, units = "in"
+)
+
+  ### DE dotplot ================================================================
 ## data -----------------------------------------------------------------------
 de.genes <- list()
 for(i in celltypes){
