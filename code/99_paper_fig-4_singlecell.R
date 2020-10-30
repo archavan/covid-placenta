@@ -15,31 +15,13 @@ library(cowplot)
 library(ggtext)
 library(ungeviz) # for geom_hpline
 
-### data ======================================================================
+### UMAP ======================================================================
+## data -----------------------------------------------------------------------
 ## Seurat
 seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
 celltypes <- seur@meta.data$annotation_merged %>% unique()
 
-## DE genes
-de.genes <- list()
-for(i in celltypes){
-  de.genes[[i]] <- read.csv(
-    paste0("results/04_de-genes-by-celltype/logfc_0.40/de/files/de-genes_", i, ".csv")
-  )
-  de.genes[[i]] <- dplyr::rename(de.genes[[i]], "gene" = "X")
-  de.genes[[i]]$celltype <- i
-}
-
-## Interferome output
-ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
-
-## CellphoneDB output
-cpdb.cntrl <- read.table("results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
-cpdb.covid <- read.table("results/06_cellphonedb/out/covid/count_network.txt", header = TRUE, sep = "\t", quote = "")
-
-### Make individual plots =====================================================
-## Panel A: UMAP --------------------------------------------------------------
-## colours for clusters to match with stacked barplot from supp. fig
+## colours for clusters to match with stacked barplot from supp. fig ----------
 stack.colors <- c("#6cb9a0",
                   "#a90090",
                   "#2abb3e",
@@ -145,11 +127,21 @@ plot_umap <- function(object, title = NA, label = "none",
 ## individual plots
 umap.all <- plot_umap(object = seur, label = "label", title = "", )
 
-## Panel C: DE dotplot --------------------------------------------------------
-## create celltype_covid ident to use for seurat dotplot
+### DE dotplot ================================================================
+## data -----------------------------------------------------------------------
+de.genes <- list()
+for(i in celltypes){
+  de.genes[[i]] <- read.csv(
+    paste0("results/04_de-genes-by-celltype/logfc_0.40/de/files/de-genes_", i, ".csv")
+  )
+  de.genes[[i]] <- dplyr::rename(de.genes[[i]], "gene" = "X")
+  de.genes[[i]]$celltype <- i
+}
+
+## create celltype_covid ident to use for seurat dotplot ----------------------
 seur$celltype_covid <- paste0(seur$annotation_merged, "_", seur$covid)
 
-## theme for DE genes faceted dotplot
+## theme for DE genes faceted dotplot -----------------------------------------
 theme_dotplot <- theme(
   panel.background = element_blank(),
   text = element_text(color = "Black"),
@@ -178,7 +170,7 @@ theme_dotplot <- theme(
   panel.spacing.x = unit(0, "lines")
 )
 
-## dotplot function
+## dotplot function -----------------------------------------------------------
 plot_splitdot <- function(object, features, exclude.celltypes = c()) {
   
   # idents combined for celltype and covid
@@ -301,11 +293,11 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
   
 }
 
-## exclude celltypes lists
+## exclude celltypes lists ----------------------------------------------------
 exclude1 <- c("dec.Tcell_1", "dec.Tcell_2", "dec.Tcell_3", "dec.Bcells", "dec.Gran", "vil.Ery")
 exclude2 <- c("dec.Tcell_3", "dec.Bcells", "dec.Gran", "vil.Ery")
 
-## select genes to plot: top x number of genes from clusters of interest
+## select genes to plot: top x number of genes from clusters of interest ------
 de.genes <- lapply(de.genes,  # sort de.genes by logfc
                    function(x){x[order(x$avg_logFC, decreasing = TRUE), ]})
 
@@ -320,7 +312,7 @@ select_genes <- function(n, exclude.celltypes) {
   return(de.to.plot$gene %>% unique())
 }
 
-## plot with T celss
+## plot with T celss ----------------------------------------------------------
 numgenes <- 5
 features <- select_genes(n = numgenes, exclude.celltypes = exclude2)
 splitdot.top5 <- plot_splitdot(
@@ -329,7 +321,7 @@ splitdot.top5 <- plot_splitdot(
   exclude.celltypes = exclude2
 )
 
-## plot without T cells
+## plot without T cells -------------------------------------------------------
 numgenes <- 5
 features <- select_genes(n = numgenes, exclude.celltypes = exclude1)
 splitdot.top5.noTcells <- plot_splitdot(
@@ -338,12 +330,14 @@ splitdot.top5.noTcells <- plot_splitdot(
   exclude.celltypes = exclude1
 )
 
+### Interferome plot ==========================================================
+## data -----------------------------------------------------------------------
+ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
 
-## Panel D: Interferome plot --------------------------------------------------
-# color by pval
+## color by pval --------------------------------------------------------------
 ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey40")
 
-# tidy
+## tidy -----------------------------------------------------------------------
 ifome.n.long <- pivot_longer(
   data = ifome.n,
   cols = 3:6,
@@ -357,7 +351,7 @@ ifome.n.long$celltype <- factor(
   levels = ifome.n$celltype[order(ifome.n$pct_interferome.yes)]
 )
 
-# plot
+## plot -----------------------------------------------------------------------
 plot.dat <- ifome.n.long
 p.ifome <- ggplot(data = plot.dat, 
                   aes(y = celltype, x = pct)) +
@@ -409,8 +403,12 @@ p.ifome <- ggplot(data = plot.dat,
     legend.text = element_text(size = 5)
   )
 
-## Panel E: CellPhoneDB results -----------------------------------------------
-# create a dataset of differences
+### CellPhoneDB results =======================================================
+## data -----------------------------------------------------------------------
+cpdb.cntrl <- read.table("results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
+cpdb.covid <- read.table("results/06_cellphonedb/out/covid/count_network.txt", header = TRUE, sep = "\t", quote = "")
+
+## create a dataset of differences --------------------------------------------
 count.fc <- inner_join(x = cpdb.cntrl, y = cpdb.covid, 
                        by = c("SOURCE", "TARGET"),
                        suffix = c(".cntrl", ".covid"))
