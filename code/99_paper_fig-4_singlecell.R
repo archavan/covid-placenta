@@ -405,6 +405,93 @@ cowplot::ggsave2(
   width = 3, height = 2.75, units = "in"
 )
 
+### Metascape results ==========================================================
+## data -----------------------------------------------------------------------
+meta <- read.csv("results/07_metascape/metascape_fewer-celltypes/Enrichment_heatmap/HeatmapSelectedGO.csv")
+
+## prepare for plotting -------------------------------------------------------
+meta$Description_new <- gsub(pattern = "positive", 
+                             replacement = "+ve", 
+                             x = meta$Description)
+meta$Description_new[meta$Description_new == "Hemostasis"] <- "hemostasis"
+meta$Description_new[meta$Description_new == "Adaptive Immune System"] <- "adaptive immune system"
+meta$Description_new[meta$Description_new == "Selenocysteine synthesis"] <- "selenocysteine synthesis"
+
+meta.long <- pivot_longer(data = meta, 
+                          cols = 3:19, 
+                          names_to = "celltype", 
+                          names_prefix = "X_LogP_", 
+                          values_to = "logP")
+
+meta.long$Description_new <- factor(
+  meta.long$Description_new,
+  levels = rev(c( 
+    "regulation of MAPK cascade",                
+    "hemostasis",                  
+    "regulated exocytosis",                         
+    "+ve regulation of cellular component movement",
+    "activation of immune response",               
+    "+ve regulation of cell death",                 
+    "response to interferon-gamma",                
+    "response to toxic substance",                 
+    "viral life cycle",                           
+    "regulation of multi-organism process",       
+    "response to wounding",        
+    "+ve regulation of cytokine production",        
+    "regulation of cell adhesion",       
+    "apoptotic signaling pathway",                 
+    "Signaling by Interleukins",                 
+    "regulation of cellular response to stress", 
+    "supramolecular fiber organization",         
+    "adaptive immune system",                      
+    "leukocyte migration",                        
+    "selenocysteine synthesis"                    
+  ))
+) # same order as in metascape output, which uses clustering
+
+meta.long$celltype <- factor(
+  meta.long$celltype,
+  levels = c(
+    "vil.EVT", "vil.SCT", "vil.Hofb", "dec.DSC", "dec.Endo", "dec.SMC", "dec.NK_3", "dec.NK_2", "dec.NK_1", "dec.Tcell_1", "dec.APC", "dec.FB", "vil.FB", "dec.Mono_1", "vil.VCT", "dec.Mono_2", "dec.Tcell_2"
+  )
+)
+
+## plot -----------------------------------------------------------------------
+p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
+  geom_tile(aes(fill = -logP)) +
+  scale_fill_gradient(
+    name = "- log(p)",
+    low = "white", high = "#d94801",
+    limits = c(0, 20), 
+    oob = scales::squish,
+    breaks = c(0, 10, 20),
+    labels = c("0", "10", ">20"),
+    guide = guide_colorbar(ticks.colour = "black")
+    ) +
+  coord_fixed() +
+  scale_y_discrete(position = "right") +
+  theme(
+    panel.border = element_rect(size = 0.25, colour = "black", fill = NA),
+    axis.ticks = element_line(size = 0.25),
+    axis.ticks.length = unit(0.1, "lines"),
+    axis.title = element_blank(),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "black"),
+    axis.text.y = element_text(color = "black", size = 5),
+    legend.key.width = unit(0.4, "lines"),
+    legend.key.height = unit(0.25, "lines"),
+    legend.title = element_text(size = 5.5, color = "black"),
+    legend.text = element_text(size = 5, color = "black"),
+    legend.position = "top",
+    legend.box.spacing = unit(0, "lines"),
+    legend.background = element_blank()
+  )
+
+cowplot::ggsave2(
+  p.meta,
+  filename = "results/99_paper-figures/fig4_single-cell/04d_metascape.pdf",
+  width = 3, height = 2.5, units = "in"
+)
+
 ### CellPhoneDB results =======================================================
 ## data -----------------------------------------------------------------------
 cpdb.cntrl <- read.table("results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
