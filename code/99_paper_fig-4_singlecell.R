@@ -74,7 +74,7 @@ ulab <- mutate(ulab,
                  ident == "vil.FB" ~ "vil.FB (Fibroblast)",
                  ident == "vil.Hofb" ~ "vil.Hofb (Hofbauer)",
                  ident == "vil.SCT" ~ "vil.SCT (Syncytial trophoblast)",
-                 ident == "vil.VCT" ~ "vil.VCT (Villous cytotropphoblast)"
+                 ident == "vil.VCT" ~ "vil.VCT (Villous cytotrophoblast)"
                ))
 
 udat$ident <- factor(udat$ident, levels = ulab$ident)
@@ -124,7 +124,7 @@ cowplot::ggsave2(
   width = 4, height = 2.75, units = "in"
 )
 
-  ### DE dotplot ================================================================
+### DE dotplot ================================================================
 ## data -----------------------------------------------------------------------
 de.genes <- list()
 for(i in celltypes){
