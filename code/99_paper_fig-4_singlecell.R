@@ -577,18 +577,18 @@ r2 <- plot_grid(c1,
                 rel_widths = c(4, 3),
                 align = "none")
 
-composite <- plot_grid(r1, r2, nrow = 2, rel_heights = c(2.75, 5.5))
+composite <- plot_grid(r1, r2, nrow = 2, rel_heights = c(2.75, 6))
 
 cowplot::ggsave2(
   filename="results/99_paper-figures/fig4_single-cell/04_composite_v1.png",
   composite, 
-  width = 7, height = 8.25, units = "in", type = "cairo", dpi = 600
+  width = 7, height = 8.75, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
   filename="results/99_paper-figures/fig4_single-cell/04_composite_v1.pdf",
   composite, 
-  width = 7, height = 8.25, units = "in"
+  width = 7, height = 8.75, units = "in"
 )
 
 ### end =======================================================================
