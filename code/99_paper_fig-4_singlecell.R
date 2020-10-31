@@ -329,7 +329,7 @@ cowplot::ggsave2(
 ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
 
 ## color by pval --------------------------------------------------------------
-ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Black", no = "Grey75")
+ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Red", no = "Grey30")
 
 ## tidy -----------------------------------------------------------------------
 ifome.n.long <- pivot_longer(
@@ -353,7 +353,7 @@ p.ifome <- ggplot(data = plot.dat,
            position = "stack", 
            stat = "identity", 
            width = 0.8) +
-  scale_fill_manual(values = c("grey90", "#74add1"), # #4e79a7
+  scale_fill_manual(values = c("grey90", "grey40"), # #4e79a7 or #74add1
                     breaks = c("no", "yes"),
                     name = "Interferome", 
                     labels = c("No", "Yes")) +
