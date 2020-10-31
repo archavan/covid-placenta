@@ -518,8 +518,9 @@ cpdb <- count.fc %>%
   geom_tile(aes(fill = logfc)) +
   scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d94801", 
                        midpoint = 0,
-                       name = "log(covid/control)",
+                       name = "log(COVID/ctrl)",
                        guide = guide_colorbar(ticks.colour = "black")) +
+  scale_y_discrete(position = "right") +
   theme_bw() +
   theme(
     aspect.ratio = 1,
