@@ -564,7 +564,7 @@ c1 <- plot_grid(splitdot.top5,
 
 c2 <- plot_grid(p.meta, cpdb,
                 ncol = 1,
-                rel_heights = c(2.5, 3),
+                rel_heights = c(3, 3),
                 align = "v",
                 axis = "l",
                 labels = c("D", "E"),
@@ -574,7 +574,7 @@ c2 <- plot_grid(p.meta, cpdb,
 r2 <- plot_grid(c1,
                 c2,
                 ncol = 2,
-                rel_heights = c(4, 3),
+                rel_widths = c(4, 3),
                 align = "none")
 
 composite <- plot_grid(r1, r2, nrow = 2, rel_heights = c(2.75, 5.5))
