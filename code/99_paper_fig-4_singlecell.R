@@ -516,105 +516,79 @@ cpdb <- count.fc %>%
   
   ggplot(., aes(SOURCE, TARGET)) +
   geom_tile(aes(fill = logfc)) +
-  scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d6604d", 
+  scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d94801", 
                        midpoint = 0,
-                       name = "log(covid/control)") +
+                       name = "log(covid/control)",
+                       guide = guide_colorbar(ticks.colour = "black")) +
   theme_bw() +
   theme(
-#    aspect.ratio = 1,
+    aspect.ratio = 1,
     panel.border = element_rect(size = 0.25, colour = "black"),
     axis.ticks = element_line(size = 0.25),
     axis.title = element_blank(),
-    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 6, color = "black"),
-    axis.text.y = element_text(color = "black", size = 6),
-    legend.key.size = unit(0.4, "lines"),
-    legend.title = element_text(size = 5.5, color = "black"),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "black"),
+    axis.text.y = element_text(color = "black", size = 5),
+    legend.key.width = unit(0.4, "lines"),
+    legend.key.height = unit(0.25, "lines"),
+    legend.title = element_text(size = 5.25, color = "black"),
     legend.text = element_text(size = 5, color = "black"),
     legend.position = "top",
     legend.box.spacing = unit(0, "lines"),
     legend.background = element_blank()
   )
 
+cowplot::ggsave2(
+  cpdb,
+  filename = "results/99_paper-figures/fig4_single-cell/04e_cellphonedb.pdf",
+  width = 3, height = 3, units = "in"
+)
+
 ### Arrange ===================================================================
 ## version with T cells (but not Tcell_3 -- too few cells)
-ade.aligned <- align_plots(umap.all, p.ifome, cpdb, align = "v", axis = "lr")
-col1 <- plot_grid(ade.aligned[[1]], 
-                  ade.aligned[[2]],
-                  ade.aligned[[3]],
-                  ncol = 1,
-                  rel_heights = c(2.75, 2.75, 3),
-                  align = "none",
-                  labels = c("A", "D", "E"),
-                  label_size = 8,
-                  label_fontface = "bold") 
+ac.aligned <- align_plots(umap, p.ifome, align = "h", axis = "tb")
+r1 <- plot_grid(ac.aligned[[1]], 
+                ac.aligned[[2]],
+                ncol = 2,
+                rel_widths = c(4, 3),
+                align = "none",
+                labels = c("A", "C"),
+                label_size = 8,
+                label_fontface = "bold") 
 
-bc.aligned <- align_plots(cor.plot, splitdot.top5, align = "v", axis = "lr")
-col2 <- plot_grid(bc.aligned[[1]],
-                  bc.aligned[[2]],
-                  ncol = 1,
-                  rel_heights = c(4, 5),
-                  labels = c("B", "C"),
-                  label_size = 8,
-                  label_fontface = "bold")
-
-composite <- plot_grid(col1, col2, nrow = 1, rel_widths = c(3, 4))
-
-cowplot::ggsave2(
-  filename="results/99_paper-figures/fig4_single-cell/fig04_composite.png",
-  composite, 
-  width = 7, height = 9, units = "in", type = "cairo", dpi = 600
-)
-
- ## version without any T cells
-bc.aligned.2 <- align_plots(cor.plot, splitdot.top5.noTcells, 
-                            align = "v", axis = "lr")
-col2.2 <- plot_grid(bc.aligned.2[[1]],
-                    bc.aligned.2[[2]],
-                    ncol = 1,
-                    rel_heights = c(4, 5),
-                    labels = c("B", "C"),
-                    label_size = 8,
-                    label_fontface = "bold")
-
-composite.2 <- plot_grid(col1, col2.2, nrow = 1, rel_widths = c(3, 4))
-
-cowplot::ggsave2(
-  filename="results/99_paper-figures/fig4_single-cell/fig04_composite_noTcells.png",
-  composite.2, 
-  width = 7, height = 9, units = "in", type = "cairo", dpi = 600
-)
-  
-### try different panel arrangements ==========================================
-r1.aln <- align_plots(cor.plot + 
-                        theme(plot.margin = margin(6, 50, 6, 6)), 
-                      p.ifome, align = "h", axis = "tb")
-r1 <- plot_grid(r1.aln[[1]], r1.aln[[2]],
-                ncol = 2, 
-                rel_widths = c(3.5, 3.25),
-                labels = c("A", "D"),
-                label_size = 8, 
-                label_fontface = "bold")
-c1.aln <- align_plots(umap.all, cpdb, align = "v", axis = "lr")
-c1 <- plot_grid(c1.aln[[1]], c1.aln[[2]],
-                ncol = 1, 
-                rel_heights = c(0.9, 1.2),
-                labels = c("B", "C"),
-                label_size = 8, 
-                label_fontface = "bold")
-c2 <- plot_grid(splitdot.top5,
+c1 <- plot_grid(splitdot.top5,
                 ncol = 1,
-                labels = c("E"),
-                label_size = 8, 
+                align = "none",
+                labels = c("B"),
+                label_size = 8,
                 label_fontface = "bold")
-r2 <- plot_grid(c1, c2, 
-                ncol = 2, 
-                rel_widths = c(2.6, 4.4))
 
-comp.opt2 <- plot_grid(r1, r2, nrow = 2, rel_heights = c(3.8, 5.2))
+c2 <- plot_grid(p.meta, cpdb,
+                ncol = 1,
+                rel_heights = c(2.5, 3),
+                align = "v",
+                axis = "l",
+                labels = c("D", "E"),
+                label_size = 8,
+                label_fontface = "bold")
+
+r2 <- plot_grid(c1,
+                c2,
+                ncol = 2,
+                rel_heights = c(4, 3),
+                align = "none")
+
+composite <- plot_grid(r1, r2, nrow = 2, rel_heights = c(2.75, 5.5))
 
 cowplot::ggsave2(
-  filename="results/99_paper-figures/fig4_single-cell/fig04_composite_option2.png",
-  comp.opt2, 
-  width = 7, height = 9, units = "in", type = "cairo", dpi = 600
+  filename="results/99_paper-figures/fig4_single-cell/04_composite_v1.png",
+  composite, 
+  width = 7, height = 8.25, units = "in", type = "cairo", dpi = 600
 )
+
+cowplot::ggsave2(
+  filename="results/99_paper-figures/fig4_single-cell/04_composite_v1.pdf",
+  composite, 
+  width = 7, height = 8.25, units = "in"
+)
+
 ### end =======================================================================
