@@ -16,7 +16,7 @@ seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
 ### uUMI per sample ===========================================================
 n.umi <- ggplot(data = seur@meta.data, 
                 aes(x = orig.ident_renamed, y = nCount_RNA)) +
-  geom_violin(fill = "grey") +
+  geom_violin(fill = "grey", size = 0.35) +
   facet_grid(. ~ covid + tissue, 
              space = "free", 
              scales = "free",
@@ -42,7 +42,7 @@ n.umi
 ### nGene per sample ==========================================================
 n.gene <- ggplot(data = seur@meta.data, 
                 aes(x = orig.ident_renamed, y = nFeature_RNA)) +
-  geom_violin(fill = "grey") +
+  geom_violin(fill = "grey", size = 0.35) +
   facet_grid(. ~ covid + tissue, 
              space = "free", 
              scales = "free",
