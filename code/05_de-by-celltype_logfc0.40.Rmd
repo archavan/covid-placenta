@@ -46,7 +46,7 @@ seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
 
 # Differentialy expressed genes
 
-We will use the "merged" annotations as our celltypes for which to perform DE analysis. For identifying differentially expressed genes, we will use `Seurat::FindMarkers()`. For this we first have to create a new metadata column with `celltype_covid` and `celltype_control` values, and then we run DE between these two `idents`. This function by dafault uses the Wilcoxon Rank Sum test, which we won't change. By default this function outputs all genes for which `abs(logFC)` is at least `0.25`, without filtering by p value. We will not use these defaults. Instead:
+We will use the "merged" annotations as our celltypes for which to perform DE analysis. For identifying differentially expressed genes, we will use `Seurat::FindMarkers()`. For this we first have to create a new metadata column with `celltype_covid` and `celltype_control` values, and then we run DE between these two `idents`. This function by dafault uses the Wilcoxon Rank Sum test, which we won't change. Reported p values are two-tailed (https://github.com/satijalab/seurat/issues/2728). By default this function outputs all genes for which `abs(logFC)` is at least `0.25`, without filtering by p value. We will not use these defaults. Instead:
 
 1. Fold change cutoff: $|log(Fold Change)| > 0.4$  
 2. $p_{adj} < 0.05$
