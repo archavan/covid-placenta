@@ -144,6 +144,7 @@ seur$celltype_covid <- paste0(seur$annotation_merged, "_", seur$covid)
 
 ## theme for DE genes faceted dotplot -----------------------------------------
 theme_dotplot <- theme(
+  plot.margin = margin(5.5, 5.5, 1, 5.5),
   panel.background = element_blank(),
   text = element_text(color = "Black"),
   panel.grid = element_blank(),
@@ -160,7 +161,7 @@ theme_dotplot <- theme(
   legend.direction = "horizontal",
   legend.box = "horizontal",
   legend.background = element_blank(),
-  legend.box.spacing = unit(0, "lines"),
+  legend.box.spacing = unit(0.5, "lines"),
   legend.title.align = 0,
   legend.text = element_text(size = 5),
   legend.key.size = unit(0.5, "lines"),
@@ -329,7 +330,7 @@ cowplot::ggsave2(
 ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
 
 ## color by pval --------------------------------------------------------------
-ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "Red", no = "Grey30")
+ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "#d94801", no = "Grey30")
 
 ## tidy -----------------------------------------------------------------------
 ifome.n.long <- pivot_longer(
@@ -352,7 +353,7 @@ p.ifome <- ggplot(data = plot.dat,
   geom_bar(aes(fill = interferome),
            position = "stack", 
            stat = "identity", 
-           width = 0.8) +
+           width = 0.7) +
   scale_fill_manual(values = c("grey90", "grey40"), # #4e79a7 or #74add1
                     breaks = c("no", "yes"),
                     name = "Interferome", 
@@ -364,13 +365,13 @@ p.ifome <- ggplot(data = plot.dat,
   geom_text(data = plot.dat[plot.dat$interferome == "yes", ], # number of genes
             aes(y = celltype, x = pct, 
                 label = paste0(n, "/", n_de)),
-            size = 4.5/.pt, vjust = 0.5, hjust = 0.0, nudge_x = 0.5) +
+            size = 4/.pt, vjust = 0.5, hjust = 0.0, nudge_x = 0.5) +
   geom_text(data = plot.dat[, c("celltype", "pval")] %>% 
               unique(), # pvalues
             aes(y = celltype, x = 100, 
                 label = formatC(pval, format = "e", digits = 0)),
             hjust = 0, 
-            size = 5/.pt, 
+            size = 4/.pt, 
             nudge_x = 1,
             color = unique(plot.dat[, c("celltype", "color")])$color) +
   annotate(geom = "richtext", x  = 102, y = 22,
@@ -381,28 +382,29 @@ p.ifome <- ggplot(data = plot.dat,
            label.padding = grid::unit(0, "pt")) + # remove padding
   theme_classic() +
   theme(
-    plot.margin = margin(6, 23, 6, 6),
+    plot.margin = margin(10, 23, 1, 6),
     axis.text.y = element_text(angle = 0, hjust = 1, vjust = 0.5, 
                                size = 5, color = "black"),
     axis.text.x = element_text(size = 5, color = "black"),
-    axis.title = element_text(size = 5.25),
+    axis.title = element_text(size = 5.0),
     axis.title.y = element_blank(),
     axis.line = element_line(size = 0.25),
     axis.ticks.y = element_line(size = 0.25),
     axis.ticks.x = element_line(size = 0.25),
     legend.direction = "horizontal",
-    legend.position = "top",
+    legend.position = c(0.5, 1),
+    legend.justification = c(0.5, 0.25),
     legend.box.spacing = unit(0, "lines"),
     legend.background = element_blank(),
-    legend.key.size = unit(0.5, "lines"),
-    legend.title = element_text(size = 5.25),
+    legend.key.size = unit(0.4, "lines"),
+    legend.title = element_text(size = 5),
     legend.text = element_text(size = 5)
   )
 
 cowplot::ggsave2(
   p.ifome,
   filename = "results/99_paper-figures/fig4_single-cell/04c_interferome.pdf",
-  width = 3, height = 2.75, units = "in"
+  width = 2.75, height = 2.35, units = "in"
 )
 
 ### Metascape results ==========================================================
@@ -416,6 +418,7 @@ meta$Description_new <- gsub(pattern = "positive",
 meta$Description_new[meta$Description_new == "Hemostasis"] <- "hemostasis"
 meta$Description_new[meta$Description_new == "Adaptive Immune System"] <- "adaptive immune system"
 meta$Description_new[meta$Description_new == "Selenocysteine synthesis"] <- "selenocysteine synthesis"
+meta$Description_new[meta$Description_new == "Signaling by Interleukins"] <- "signaling by interleukins"
 
 meta.long <- pivot_longer(data = meta, 
                           cols = 3:19, 
@@ -440,7 +443,7 @@ meta.long$Description_new <- factor(
     "+ve regulation of cytokine production",        
     "regulation of cell adhesion",       
     "apoptotic signaling pathway",                 
-    "Signaling by Interleukins",                 
+    "signaling by interleukins",                 
     "regulation of cellular response to stress", 
     "supramolecular fiber organization",         
     "adaptive immune system",                      
@@ -471,15 +474,16 @@ p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
   coord_fixed() +
   scale_y_discrete(position = "right") +
   theme(
+    plot.margin = margin(1, 2, 1, 5.5),
     panel.border = element_rect(size = 0.25, colour = "black", fill = NA),
     axis.ticks = element_line(size = 0.25),
     axis.ticks.length = unit(0.1, "lines"),
     axis.title = element_blank(),
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "black"),
     axis.text.y = element_text(color = "black", size = 5),
-    legend.key.width = unit(0.4, "lines"),
+    legend.key.width = unit(0.6, "lines"),
     legend.key.height = unit(0.25, "lines"),
-    legend.title = element_text(size = 5.5, color = "black"),
+    legend.title = element_text(size = 5, color = "black"),
     legend.text = element_text(size = 5, color = "black"),
     legend.position = "top",
     legend.box.spacing = unit(0, "lines"),
@@ -518,22 +522,23 @@ cpdb <- count.fc %>%
   geom_tile(aes(fill = logfc)) +
   scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d94801", 
                        midpoint = 0,
-                       name = "log(COVID/ctrl)",
+                       name = "log(COVID / ctrl)",
                        guide = guide_colorbar(ticks.colour = "black")) +
   scale_y_discrete(position = "right") +
   theme_bw() +
   theme(
     aspect.ratio = 1,
+    plot.margin = margin(2, 2, 1, 5.5),
     panel.border = element_rect(size = 0.25, colour = "black"),
     axis.ticks = element_line(size = 0.25),
     axis.title = element_blank(),
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "black"),
     axis.text.y = element_text(color = "black", size = 5),
-    legend.key.width = unit(0.4, "lines"),
-    legend.key.height = unit(0.25, "lines"),
+    legend.key.width = unit(0.25, "lines"),
+    legend.key.height = unit(0.6, "lines"),
     legend.title = element_text(size = 5.25, color = "black"),
     legend.text = element_text(size = 5, color = "black"),
-    legend.position = "top",
+    legend.position = "right",
     legend.box.spacing = unit(0, "lines"),
     legend.background = element_blank()
   )
@@ -541,55 +546,82 @@ cpdb <- count.fc %>%
 cowplot::ggsave2(
   cpdb,
   filename = "results/99_paper-figures/fig4_single-cell/04e_cellphonedb.pdf",
-  width = 3, height = 3, units = "in"
+  width = 2.75, height = 2.25, units = "in"
+)
+
+## HSPA1A violin plot =========================================================
+seur$annotation_merged <- factor(seur$annotation_merged, 
+                                 levels = sort(unique(seur$annotation_merged)))
+Idents(seur) <- seur$annotation_merged
+
+hsp <- VlnPlot(object = seur, 
+               features = c("HSPA1A"), 
+               assay = "SCT", 
+               split.by = "covid", 
+               split.plot = TRUE,
+               pt.size = 0,
+) + 
+  scale_fill_manual(breaks = c("cntrl", "covid"), 
+                    labels = c("ctrl", "COVID"),
+                    values = c(alpha("#d94801", 0.65), alpha("#4393c3", 0.65))) + 
+  coord_cartesian(clip = "off") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(0, 5.5, 1, 5.5),
+    plot.title = element_text(size = 5, color = "black"),
+    panel.grid = element_blank(),
+    axis.line = element_line(size = 0.25),
+    axis.ticks = element_line(size = 0.25),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, 
+                               size = 5, color = "black"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 5, color = "black"),
+    axis.text.y = element_text(size = 5, color = "black"),
+    legend.key.size = unit(0.4, "lines"),
+    legend.position = "right",
+    legend.background = element_blank(),
+    legend.box.spacing = unit(0, "lines"),
+    legend.text = element_text(size = 5, colour = "black")
+  )
+
+hsp$layers[[1]]$aes_params$size = 0.2 # violin stroke
+
+cowplot::ggsave2(
+  hsp,
+  filename = "results/99_paper-figures/fig4_single-cell/04f_hspa1a_vln.pdf",
+  width = 3, height = 1.65, units = "in"
 )
 
 ### Arrange ===================================================================
-## version with T cells (but not Tcell_3 -- too few cells)
-ac.aligned <- align_plots(umap, p.ifome, align = "h", axis = "tb")
-r1 <- plot_grid(ac.aligned[[1]], 
-                ac.aligned[[2]],
-                ncol = 2,
-                rel_widths = c(4, 3),
-                align = "none",
-                labels = c("A", "C"),
-                label_size = 8,
-                label_fontface = "bold") 
+aa <- plot_grid(umap,
+               labels = c("A"), label_size = 8, label_fontface = "bold")
+bb <- plot_grid(splitdot.top5,
+               labels = c("B"), label_size = 8, label_fontface = "bold")
 
-c1 <- plot_grid(splitdot.top5,
-                ncol = 1,
-                align = "none",
-                labels = c("B"),
-                label_size = 8,
-                label_fontface = "bold")
+cc <- plot_grid(p.ifome, NULL, ncol = 2, rel_widths = c(2.75, 0.25), 
+               labels = c("C", ""), label_size = 8, label_fontface = "bold")
+dd <- plot_grid(p.meta, 
+               labels = c("D"), label_size = 8, label_fontface = "bold")
+ee <- plot_grid(cpdb, NULL, ncol = 2, rel_widths = c(2.75, 0.25),
+               labels = c("E", ""), label_size = 8, label_fontface = "bold")
+ff <- plot_grid(hsp, NULL, ncol = 2, rel_widths = c(3, 0),
+               labels = c("F", ""), label_size = 8, label_fontface = "bold")
 
-c2 <- plot_grid(p.meta, cpdb,
-                ncol = 1,
-                rel_heights = c(3, 3),
-                align = "v",
-                axis = "l",
-                labels = c("D", "E"),
-                label_size = 8,
-                label_fontface = "bold")
+ab <- plot_grid(aa, bb, nrow = 2, rel_heights = c(2.5, 6.0))
+cdef <- plot_grid(cc, dd, ee, ff, nrow = 4, rel_heights = c(2.3, 2.3, 2.3, 1.6))
 
-r2 <- plot_grid(c1,
-                c2,
-                ncol = 2,
-                rel_widths = c(4, 3),
-                align = "none")
-
-composite <- plot_grid(r1, r2, nrow = 2, rel_heights = c(2.75, 6))
+composite <- plot_grid(ab, cdef, ncol = 2, rel_widths = c(4, 3))
 
 cowplot::ggsave2(
-  filename="results/99_paper-figures/fig4_single-cell/04_composite_v1.png",
+  filename = "results/99_paper-figures/fig4_single-cell/04_composite_v2.png",
   composite, 
-  width = 7, height = 8.75, units = "in", type = "cairo", dpi = 600
+  width = 7, height = 8.5, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-  filename="results/99_paper-figures/fig4_single-cell/04_composite_v1.pdf",
+  filename = "results/99_paper-figures/fig4_single-cell/04_composite_v2.pdf",
   composite, 
-  width = 7, height = 8.75, units = "in"
+  width = 7, height = 8.5, units = "in"
 )
 
 ### end =======================================================================
