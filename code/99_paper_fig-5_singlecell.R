@@ -124,7 +124,7 @@ umap <- ggplot() +
 
 cowplot::ggsave2(
   umap,
-  filename = "results/99_paper-figures/fig4_single-cell/04a_umap.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05a_umap.pdf",
   width = 4, height = 2.75, units = "in"
 )
 
@@ -321,7 +321,7 @@ splitdot.top5 <- plot_splitdot(
 
 cowplot::ggsave2(
   splitdot.top5,
-  filename = "results/99_paper-figures/fig4_single-cell/04b_splitdot-top5genes.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05b_splitdot-top5genes.pdf",
   width = 4, height = 5.5, units = "in"
 )
 
@@ -403,7 +403,7 @@ p.ifome <- ggplot(data = plot.dat,
 
 cowplot::ggsave2(
   p.ifome,
-  filename = "results/99_paper-figures/fig4_single-cell/04c_interferome.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05c_interferome.pdf",
   width = 2.75, height = 2.35, units = "in"
 )
 
@@ -492,7 +492,7 @@ p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
 
 cowplot::ggsave2(
   p.meta,
-  filename = "results/99_paper-figures/fig4_single-cell/04d_metascape.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05d_metascape.pdf",
   width = 3, height = 2.5, units = "in"
 )
 
@@ -545,7 +545,7 @@ cpdb <- count.fc %>%
 
 cowplot::ggsave2(
   cpdb,
-  filename = "results/99_paper-figures/fig4_single-cell/04e_cellphonedb.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05e_cellphonedb.pdf",
   width = 2.75, height = 2.25, units = "in"
 )
 
@@ -588,7 +588,7 @@ hsp$layers[[1]]$aes_params$size = 0.2 # violin stroke
 
 cowplot::ggsave2(
   hsp,
-  filename = "results/99_paper-figures/fig4_single-cell/04f_hspa1a_vln.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05f_hspa1a_vln.pdf",
   width = 3, height = 1.65, units = "in"
 )
 
@@ -613,13 +613,13 @@ cdef <- plot_grid(cc, dd, ee, ff, nrow = 4, rel_heights = c(2.3, 2.3, 2.3, 1.6))
 composite <- plot_grid(ab, cdef, ncol = 2, rel_widths = c(4, 3))
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig4_single-cell/04_composite_v2.png",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v2.png",
   composite, 
   width = 7, height = 8.5, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig4_single-cell/04_composite_v2.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v2.pdf",
   composite, 
   width = 7, height = 8.5, units = "in"
 )
