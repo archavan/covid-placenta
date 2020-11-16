@@ -8,6 +8,7 @@ library(tidyverse)
 library(Seurat)
 
 # plotting
+library(grid)
 library(patchwork)
 library(ggthemes)
 library(ggrepel)
@@ -125,7 +126,7 @@ umap <- ggplot() +
 cowplot::ggsave2(
   umap,
   filename = "results/99_paper-figures/fig5_single-cell/05a_umap.pdf",
-  width = 4, height = 2.75, units = "in"
+  width = 3.75, height = 2.5, units = "in"
 )
 
 ### DE dotplot ================================================================
@@ -322,7 +323,7 @@ splitdot.top5 <- plot_splitdot(
 cowplot::ggsave2(
   splitdot.top5,
   filename = "results/99_paper-figures/fig5_single-cell/05b_splitdot-top5genes.pdf",
-  width = 4, height = 5.5, units = "in"
+  width = 3.75, height = 6, units = "in"
 )
 
 ### Interferome plot ==========================================================
@@ -404,7 +405,7 @@ p.ifome <- ggplot(data = plot.dat,
 cowplot::ggsave2(
   p.ifome,
   filename = "results/99_paper-figures/fig5_single-cell/05c_interferome.pdf",
-  width = 2.75, height = 2.35, units = "in"
+  width = 2.75, height = 2.3, units = "in"
 )
 
 ### Metascape results ==========================================================
@@ -474,7 +475,7 @@ p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
   coord_fixed() +
   scale_y_discrete(position = "right") +
   theme(
-    plot.margin = margin(1, 2, 1, 5.5),
+    plot.margin = margin(1, 2, 1, 3.5), # this and cpdb plot need to be aligned by left axis in composite, but because they are both fixed aspect, aligning with cowplot doesn't work. This is why we have specify the left margins such that the vertical axes end up aligned. 
     panel.border = element_rect(size = 0.25, colour = "black", fill = NA),
     axis.ticks = element_line(size = 0.25),
     axis.ticks.length = unit(0.1, "lines"),
@@ -493,7 +494,7 @@ p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
 cowplot::ggsave2(
   p.meta,
   filename = "results/99_paper-figures/fig5_single-cell/05d_metascape.pdf",
-  width = 3, height = 2.5, units = "in"
+  width = 3, height = 2.3, units = "in"
 )
 
 ### CellPhoneDB results =======================================================
@@ -528,7 +529,7 @@ cpdb <- count.fc %>%
   theme_bw() +
   theme(
     aspect.ratio = 1,
-    plot.margin = margin(2, 2, 1, 5.5),
+    plot.margin = margin(2, 2, 1, 6.5),
     panel.border = element_rect(size = 0.25, colour = "black"),
     axis.ticks = element_line(size = 0.25),
     axis.title = element_blank(),
@@ -546,7 +547,7 @@ cpdb <- count.fc %>%
 cowplot::ggsave2(
   cpdb,
   filename = "results/99_paper-figures/fig5_single-cell/05e_cellphonedb.pdf",
-  width = 2.75, height = 2.25, units = "in"
+  width = 2.75, height = 2.3, units = "in"
 )
 
 ## HSPA1A violin plot =========================================================
@@ -563,7 +564,7 @@ hsp <- VlnPlot(object = seur,
 ) + 
   scale_fill_manual(breaks = c("cntrl", "covid"), 
                     labels = c("ctrl", "COVID"),
-                    values = c(alpha("#d94801", 0.65), alpha("#4393c3", 0.65))) + 
+                    values = c(alpha("#96003e", 1), alpha("#3924e3", 1))) + 
   coord_cartesian(clip = "off") +
   theme_classic() +
   theme(
@@ -589,7 +590,7 @@ hsp$layers[[1]]$aes_params$size = 0.2 # violin stroke
 cowplot::ggsave2(
   hsp,
   filename = "results/99_paper-figures/fig5_single-cell/05f_hspa1a_vln.pdf",
-  width = 3, height = 1.65, units = "in"
+  width = 3, height = 1.6, units = "in"
 )
 
 ### Arrange ===================================================================
@@ -607,21 +608,43 @@ ee <- plot_grid(cpdb, NULL, ncol = 2, rel_widths = c(2.75, 0.25),
 ff <- plot_grid(hsp, NULL, ncol = 2, rel_widths = c(3, 0),
                labels = c("F", ""), label_size = 8, label_fontface = "bold")
 
+# compose columns
 ab <- plot_grid(aa, bb, nrow = 2, rel_heights = c(2.5, 6.0))
 cdef <- plot_grid(cc, dd, ee, ff, nrow = 4, rel_heights = c(2.3, 2.3, 2.3, 1.6))
 
-composite <- plot_grid(ab, cdef, ncol = 2, rel_widths = c(4, 3))
+# compose all
+composite <- plot_grid(ab, cdef, ncol = 2, rel_widths = c(3.75, 3))
+
+# add rectangle
+# In the split dot plot, it's not easy to make the outer panel border black while keeping all internal facet borders grey. To get around that, we can just draw a black rectangle on top that covers the outer panel border. To get x and y coords and the dimensions in inches: saved the composite plot to desired dims, and then got the values from illustrator. 
+rect <- rectGrob(
+  x = unit(0.5497, "in"),
+  y = unit(0.8539, "in"),
+  width = unit(3.1242, "in"),
+  height = unit(4.5661, "in"),
+  hjust = 0, vjust = 0,
+  gp = gpar(fill = NA, color = "black", lwd = 0.35) 
+)
+
+composite <- ggdraw(composite) +
+  draw_grob(rect)
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v2.png",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.jpeg",
   composite, 
-  width = 7, height = 8.5, units = "in", type = "cairo", dpi = 600
+  width = 6.75, height = 8.5, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v2.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.png",
   composite, 
-  width = 7, height = 8.5, units = "in"
+  width = 6.75, height = 8.5, units = "in", type = "cairo", dpi = 600
+)
+
+cowplot::ggsave2(
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.pdf",
+  composite, 
+  width = 6.75, height = 8.5, units = "in"
 )
 
 ### end =======================================================================
