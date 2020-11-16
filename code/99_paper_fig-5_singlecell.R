@@ -257,7 +257,9 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
     geom_point(aes(fill = scaled.new, size = pct.exp), 
                shape = 21, stroke = 0, 
                color = "White") +
-    scale_fill_gradient(low = "White", high = "#d94801", 
+    scale_fill_gradient(low = "White", 
+                        high = "#4393c3", 
+                      #  high = "#d94801", 
                         name = "avg. exp. (scaled)",
                         guide = guide_colorbar(
                           title.position = "top", 
@@ -331,7 +333,10 @@ cowplot::ggsave2(
 ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/files/number-of-DE-genes-in-interferome.csv")
 
 ## color by pval --------------------------------------------------------------
-ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, yes = "#d94801", no = "Grey30")
+ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, 
+                        yes = "#4393c3", 
+                      #  yes = "#d94801", 
+                        no = "Grey50")
 
 ## tidy -----------------------------------------------------------------------
 ifome.n.long <- pivot_longer(
@@ -465,7 +470,9 @@ p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
   geom_tile(aes(fill = -logP)) +
   scale_fill_gradient(
     name = "- log(p)",
-    low = "white", high = "#d94801",
+    low = "white", 
+    high = "#4393c3",
+  #  high = "#d94801",
     limits = c(0, 20), 
     oob = scales::squish,
     breaks = c(0, 10, 20),
@@ -521,16 +528,24 @@ cpdb <- count.fc %>%
   
   ggplot(., aes(SOURCE, TARGET)) +
   geom_tile(aes(fill = logfc)) +
-  scale_fill_gradient2(low = "#4393c3", mid = "white", high = "#d94801", 
-                       midpoint = 0,
-                       name = "log(COVID / ctrl)",
-                       guide = guide_colorbar(ticks.colour = "black")) +
+  scale_fill_gradient2(
+    low = alpha("#d94801", 1), mid = "white", high = "#4393c3", 
+  #  low = "#4393c3", mid = "white", high = "#d94801", 
+    midpoint = 0,
+    # limits = c(-0.5, 0.5), 
+    # oob = scales::squish,
+    # breaks = c(-0.5, 0, 0.5),
+    # labels = c("< -0.5", "0", "> 0.5"),
+    name = "log(COVID / ctrl)",
+    guide = guide_colorbar(ticks.colour = "black")
+  ) +
   scale_y_discrete(position = "right") +
   theme_bw() +
   theme(
     aspect.ratio = 1,
     plot.margin = margin(2, 2, 1, 6.5),
     panel.border = element_rect(size = 0.25, colour = "black"),
+    panel.grid = element_blank(),
     axis.ticks = element_line(size = 0.25),
     axis.title = element_blank(),
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "black"),
@@ -562,9 +577,12 @@ hsp <- VlnPlot(object = seur,
                split.plot = TRUE,
                pt.size = 0,
 ) + 
-  scale_fill_manual(breaks = c("cntrl", "covid"), 
-                    labels = c("ctrl", "COVID"),
-                    values = c(alpha("#96003e", 1), alpha("#3924e3", 1))) + 
+  scale_fill_manual(
+    breaks = c("cntrl", "covid"), 
+    labels = c("ctrl", "COVID"),
+    values = c(alpha("#d94801", 1), alpha("#4393c3", 1))
+   # values = c(alpha("#96003e", 1), alpha("#3924e3", 1))
+  ) + 
   coord_cartesian(clip = "off") +
   theme_classic() +
   theme(
@@ -630,19 +648,22 @@ composite <- ggdraw(composite) +
   draw_grob(rect)
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.jpeg",
+#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.jpeg",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-2.jpeg",
   composite, 
   width = 6.75, height = 8.5, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.png",
+#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.png",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-2.png",
   composite, 
   width = 6.75, height = 8.5, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.pdf",
+#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-2.pdf",
   composite, 
   width = 6.75, height = 8.5, units = "in"
 )
