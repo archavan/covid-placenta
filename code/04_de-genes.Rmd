@@ -55,7 +55,7 @@ genes$focused <- c("HSPA1A", "PPP1R11", "LY6GLY6C", "ITGAX", "IFITM1", "C1QC", "
 genes$analysis1 <- c("HSPA1A", "FMC1-LUC7L2", "HSPA1B",	"AC011511.4", "PPP1R11", "AL139300.1", "LY6GLY6C")
 genes$analysis2 <- c("ITGAX", "OAS3", "IFITM1", "MX1", "C1QC", "MX2", "CCL2")
 genes$additional <- c("C1QTNF2", "LYVE1", "TREM1", "FOLR2", "C1QB",	"CCL2", "TNFRSF10C", "CXCL9", "IL1R2", "IL36A", "CD28", "OAS1", "IL1RN", "CD36", "CXCR2",	"SERPING1", "CXCR1", "TNFRSF10C", "C1QA", "HCST", "IL36A", "IL4R", "LY96", "IL1R2", "CXCR2", "CXCL2", "S100A7", "IFITM3", "SELENOM", "SELENOP", "C3AR1", "CCL2", "CCL8")
-genes$entry <- c("ACE2", "TMPRSS2", "BSG", "DPP4", "CTSL", "CTSB", "FURIN")
+genes$entry <- c("ACE2", "TMPRSS2", "BSG", "DPP4", "CTSL", "CTSB", "FURIN", "FCGRT")
 
 all.genes <- c(genes$focused, genes$analysis1, genes$analysis2, genes$additional, genes$entry) %>% 
   unique() %>% 
@@ -160,7 +160,7 @@ FeaturePlot2 <- function(object = seur, feature, ...) {
 ```
 
 
-```{r fig.width=2.75, fig.asp=1}
+```{r fig.width=5, fig.asp=1}
 
 for(i in all.genes[all.genes %in% rownames(seur)]) {
   vplot <- VlnPlot2(feature = i)
@@ -181,6 +181,15 @@ for(i in all.genes[all.genes %in% rownames(seur)]) {
 ```
 
 For some genes, the umap plots and violin plots seem to disagree with each other. That is, the gene is expressed at higher level in "covid" than "control" according to the violin plot, but the colours appear stronger for "control" on umap plots. I think this is simply because of the differing number of cells from "control" and "covid". We have fewer cells from "covid" samples (as is evident also on the umap plots), so the lightness or sparseness of blue on umap plots just reflect that. Violin plots on the other hand scale the width of violins to the total number of cells in each group, so this difference is not seen in violin plots.
+
+```{r}
+avg <- AverageExpression(seur, assays = "SCT") %>% .$SCT
+avg$gene_name <- rownames(avg)
+avg <- relocate(avg, gene_name)
+
+write.csv(avg, "../results/03_de-genes/mean-expression_assay-sct_slot-data.csv", row.names = FALSE)
+```
+
 
 # Session Info
 ```{r}
