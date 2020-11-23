@@ -55,9 +55,10 @@ genes$focused <- c("HSPA1A", "PPP1R11", "LY6GLY6C", "ITGAX", "IFITM1", "C1QC", "
 genes$analysis1 <- c("HSPA1A", "FMC1-LUC7L2", "HSPA1B",	"AC011511.4", "PPP1R11", "AL139300.1", "LY6GLY6C")
 genes$analysis2 <- c("ITGAX", "OAS3", "IFITM1", "MX1", "C1QC", "MX2", "CCL2")
 genes$additional <- c("C1QTNF2", "LYVE1", "TREM1", "FOLR2", "C1QB",	"CCL2", "TNFRSF10C", "CXCL9", "IL1R2", "IL36A", "CD28", "OAS1", "IL1RN", "CD36", "CXCR2",	"SERPING1", "CXCR1", "TNFRSF10C", "C1QA", "HCST", "IL36A", "IL4R", "LY96", "IL1R2", "CXCR2", "CXCL2", "S100A7", "IFITM3", "SELENOM", "SELENOP", "C3AR1", "CCL2", "CCL8")
-genes$entry <- c("ACE2", "TMPRSS2", "BSG", "DPP4", "CTSL", "CTSB", "FURIN", "FCGRT")
+genes$entry <- c("ACE2", "TMPRSS2", "BSG", "DPP4", "CTSL", "CTSB", "FURIN")
+genes$new <- c("FCGRT", "GPX1", "GPX3", "GPX4", "DIO3", "TXNRD1", "TXNRD2", "TXNRD3")
 
-all.genes <- c(genes$focused, genes$analysis1, genes$analysis2, genes$additional, genes$entry) %>% 
+all.genes <- c(genes$focused, genes$analysis1, genes$analysis2, genes$additional, genes$entry, genes$new) %>% 
   unique() %>% 
   sort()
 ```
@@ -86,12 +87,12 @@ DotPlot2 <- function(object = seur, assay = "SCT", features, title = "", ...) {
 }
 ```
 
-```{r fig.asp=1.2, fig.width=6.5}
+```{r fig.asp=1.3, fig.width=6.5}
 DotPlot2(features = all.genes)
 
 cowplot::ggsave2(last_plot(), 
                  filename = "../results/03_candidate-genes/plots/dotplot_all-genes.pdf", 
-                 width = 6.5, height = 8, units = "in")
+                 width = 6.5, height = 8.5, units = "in")
 ```
 
 ## Individual genes
@@ -181,6 +182,197 @@ for(i in all.genes[all.genes %in% rownames(seur)]) {
 ```
 
 For some genes, the umap plots and violin plots seem to disagree with each other. That is, the gene is expressed at higher level in "covid" than "control" according to the violin plot, but the colours appear stronger for "control" on umap plots. I think this is simply because of the differing number of cells from "control" and "covid". We have fewer cells from "covid" samples (as is evident also on the umap plots), so the lightness or sparseness of blue on umap plots just reflect that. Violin plots on the other hand scale the width of violins to the total number of cells in each group, so this difference is not seen in violin plots.
+
+# Split dotplots
+```{r}
+## data -----------------------------------------------------------------------
+celltypes <- unique(seur$annotation_merged) %>% sort()
+de.genes <- list()
+for(i in celltypes){
+  de.genes[[i]] <- read.csv(
+    paste0("../results/04_de-genes-by-celltype/logfc_0.40/de/files/de-genes_", i, ".csv")
+  )
+  de.genes[[i]] <- dplyr::rename(de.genes[[i]], "gene" = "X")
+  de.genes[[i]]$celltype <- i
+}
+```
+
+```{r}
+## create celltype_covid ident to use for seurat dotplot ----------------------
+seur$celltype_covid <- paste0(seur$annotation_merged, "_", seur$covid)
+```
+
+```{r}
+## theme for DE genes faceted dotplot -----------------------------------------
+theme_dotplot <- theme(
+  plot.margin = margin(5.5, 5.5, 1, 5.5),
+  panel.background = element_blank(),
+  text = element_text(color = "Black"),
+  panel.grid = element_blank(),
+  panel.border = element_rect(fill = NA, size = 0.25, color = "grey"),
+  axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 5, color = "Black"),
+  axis.text.y = element_text(size = 5, color = "Black"),
+  axis.title = element_blank(),
+  axis.ticks = element_line(size = 0.25, color = "grey"),
+  strip.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5, 
+                              size = 5.25, color = "Black"),
+  strip.background = element_blank(),
+  legend.title = element_text(size = 5.25),
+  legend.position = "bottom",
+  legend.direction = "horizontal",
+  legend.box = "horizontal",
+  legend.background = element_blank(),
+  legend.box.spacing = unit(0.5, "lines"),
+  legend.title.align = 0,
+  legend.text = element_text(size = 5),
+  legend.key.size = unit(0.5, "lines"),
+  legend.key = element_blank(),
+  panel.spacing.x = unit(0, "lines")
+)
+```
+
+```{r}
+## dotplot function -----------------------------------------------------------
+plot_splitdot <- function(object, features, exclude.celltypes = c()) {
+  
+  # idents combined for celltype and covid
+  Idents(object) <- object$celltype_covid
+  
+  # run seurat's dotplot
+  p <- Seurat::DotPlot(
+    object = object, 
+    assay = "SCT", 
+    features = features
+    )
+  
+  # extract plotting data
+  p.dat <- p$data
+  p.dat$celltype <- gsub(p.dat$id, pattern = "(.+)_([a-z]{5})", replacement = "\\1")
+  p.dat$covid <- gsub(p.dat$id, pattern = "(.+)_([a-z]{5})", replacement = "\\2")
+  
+  # subset for celltypes of interest
+  p.sub <- p.dat[!(p.dat$celltype %in% exclude.celltypes), ]
+  
+  # redo scaling for selected celltype_covid idents
+  p.wide <- pivot_wider(p.sub,
+                        id_cols = features.plot, 
+                        names_from = id, 
+                        values_from = avg.exp) %>% 
+    as.data.frame()
+  
+  rownames(p.wide) <- p.wide$features.plot
+  p.wide$features.plot <- NULL
+  p.scaled <- t(p.wide) %>% 
+    scale(center = TRUE, scale = TRUE) %>% 
+    t() %>% 
+    as.data.frame()
+  p.scaled$features.plot <- rownames(p.scaled)
+  
+  # melt rescaled avg.exp
+  p.scaled.long <- pivot_longer(
+    data = p.scaled, 
+    cols = names(p.scaled)[names(p.scaled) != "features.plot"], 
+    names_to = "id", 
+    values_to = "scaled.new")
+  
+  # cap min and max scaled value; same as col.min and col.max in Seurat::DotPlot
+  p.scaled.long$scaled.new[p.scaled.long$scaled.new >  2.5] <-  2.5
+  p.scaled.long$scaled.new[p.scaled.long$scaled.new < -2.5] <- -2.5
+  
+  # join with p.dat to get pct.exp and scaled.new in the same df
+  plot.dat <- dplyr::inner_join(x = p.dat, 
+                                y = p.scaled.long, 
+                                by = c("features.plot", "id"))
+  
+  # clustering for ordering
+  cdat <- pivot_wider(data =  plot.dat, id_cols = "features.plot", 
+                      names_from = id,
+                      values_from = scaled.new) %>% 
+    as.data.frame()
+
+  rownames(cdat) <- cdat$features.plot
+  cdat$features.plot <- NULL
+  cor.matrix <- cor(t(cdat))
+  
+  # reorder correlation matrix based on clustering
+  dd <- as.dist((1 - cor.matrix))
+  hc <- hclust(dd, method = 'complete')
+  cdat  <- cdat[hc$order, ]
+
+  # reorder factor levels based on clustering
+  plot.dat$features.plot <- factor(plot.dat$features.plot, 
+                                   levels = rownames(cdat))
+  
+  # prepare annotation data (hpline for DE genes)
+  de.ann <- de.genes
+  de.ann <- do.call(rbind, de.ann)
+  de.ann <- subset(de.ann, 
+                   gene %in% plot.dat$features.plot &
+                     celltype %in% plot.dat$celltype
+  )
+  de.ann$diff.exp <- de.ann$p_val_adj < 0.05
+  de.ann$diff.exp <- tolower(as.character(de.ann$diff.exp))
+  
+  # plot
+  q <- ggplot(data = plot.dat, 
+              aes(x = covid, y = features.plot)) +
+    geom_point(aes(fill = scaled.new, size = pct.exp), 
+               shape = 21, stroke = 0, 
+               color = "White") +
+    scale_fill_gradient(low = "White", 
+                        high = "#d94801", 
+                        name = "avg. exp. (scaled)",
+                        guide = guide_colorbar(
+                          title.position = "top", 
+                          title.hjust = 0.5, 
+                          ticks.colour = "black"
+                        )
+    ) +
+    scale_x_discrete(breaks = c("cntrl", "covid"), 
+                     labels = c("ctrl", "COVID")) +
+    scale_size_area(max_size = 2.5,
+                    name = "% cells with exp.",
+                    guide = guide_legend(
+                      override.aes = list(
+                        color = "White", 
+                        fill = "Grey30"
+                      ),
+                      title.position = "top", title.hjust = 0.5
+                    )
+    ) +
+    facet_grid(. ~ celltype) +
+    ungeviz::geom_hpline(data = de.ann,
+                         aes(y = gene, x = 1.5, color = diff.exp),
+                         size = 0.30, width = 1, lineend = "butt") +
+    scale_color_manual(breaks = "true",
+                       labels = "< 0.05",
+                       values = "Black",
+                       name = "DE adj.p",
+                       guide = guide_legend(title.position = "top",
+                                            title.hjust = 0.5)) +
+    theme_dotplot
+  
+  return(q)
+  
+}
+
+```
+
+```{r fig.width=5, fig.asp=0.4}
+# plot new gene list
+splitdot1 <- plot_splitdot(
+  object = seur, 
+  features = genes$new
+)
+
+cowplot::ggsave2(
+  splitdot1,
+  filename = "../results/03_candidate-genes/plots/splitdot_set1.pdf",
+  width = 3.75, height = 2, units = "in"
+)
+
+splitdot1
+```
 
 # Mean expression for all genes
 
