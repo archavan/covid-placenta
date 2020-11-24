@@ -42,4 +42,6 @@ vignettes/*.pdf
 **/data
 **/info
 **/results
+**/notes
+
 
