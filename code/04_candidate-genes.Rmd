@@ -30,7 +30,7 @@ Alice had performed bulk-RNA seq on the placenta sample from COVID-19 positive m
 I have already annotated the clusters. The annotated data (a `seurat` object) was saved as `.rds`, which we have to read. 
 
 ```{r}
-seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
+seur <- readRDS("../data/seurat-object_annotated.rds")
 ```
 
 ```{r}
@@ -38,8 +38,10 @@ seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
 DefaultAssay(seur) <- "SCT"
 
 # set levels for idents (use merged_annotations)
+clust.order <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB", "vil.FB", "vil.EVT", "vil.SCT", "vil.VCT", "vil.Ery", "vil.Hofb", "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", "Tcell_1", "Tcell_2", "Tcell_3")
+
 seur@meta.data$annotation_merged <- factor(seur@meta.data$annotation_merged,
-                                           levels = sort(unique(seur@meta.data$annotation_merged)))
+                                           levels = clust.order)
 
 # set idents
 Idents(seur) <- seur@meta.data$annotation_merged
@@ -358,7 +360,7 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
 
 ```
 
-```{r fig.width=5, fig.asp=0.4}
+```{r fig.width=6, fig.asp=0.4}
 # plot new gene list
 splitdot1 <- plot_splitdot(
   object = seur, 

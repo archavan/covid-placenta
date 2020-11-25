@@ -35,14 +35,19 @@ library(GO.db)
 # Background
 Our goal here is to perform differential expression analysis between covid and control samples separately for each annotated cell type in the single cell RNA-seq data. 
 
-This analysis is the same as `05_de-by-celltype_logfc0.25.Rmd`, except for the log fold change cutoff for DE analysis.
-
 # Data
 We will use the `Seurat` object in which we have saved the cell annotations.
 
 ```{r}
-seur <- readRDS("../results/02_annotation/seurat-object_annotated.rds")
+seur <- readRDS("../data/seurat-object_annotated.rds")
 ```
+
+```{r}
+clust.order <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB", "vil.FB", "vil.EVT", "vil.SCT", "vil.VCT", "vil.Ery", "vil.Hofb", "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", "Tcell_1", "Tcell_2", "Tcell_3")
+
+seur@meta.data$annotation_merged <- factor(seur@meta.data$annotation_merged, levels = clust.order)
+```
+
 
 # Differentialy expressed genes
 
@@ -87,7 +92,7 @@ for(i in unique(seur$annotation_merged)) {
 ```
 
 ## Number of DE genes by celltype
-```{r fig.width=2, fig.asp = 0.75}
+```{r fig.width=4, fig.asp = 0.75}
 de.number <- lapply(de.genes, nrow) %>% as.data.frame() %>% t() %>% as.data.frame()
 colnames(de.number) <- "number"
 de.number$celltype <- rownames(de.number)
@@ -117,7 +122,7 @@ print(p)
 ## Mitochondrial UMI
 For some cell types a lot of mitochondrial genes are DE between covid and control. It's possible that those genes are really differentially expressed, but it's more likely that there is a difference between covid and control samples in terms of quality of cell-prep. We can look at percent mitochondrial UMI in all cell types by covid status to see if this is true.
 
-```{r fig.asp=0.55, fig.width=4}
+```{r fig.asp=0.55, fig.width=7}
 ggplot(data = seur@meta.data, aes(x = covid, y = percent.mt)) +
   geom_sina(aes(color = covid), size = 1, alpha = 1) +
   scale_color_tableau() +
@@ -150,7 +155,7 @@ for(i in mt$celltype) {
 }
 ```
 
-```{r fig.asp = 0.8, fig.width=3}
+```{r fig.asp = 0.8, fig.width=5}
 ggplot(data = mt, aes(x = mt.diff, y = mt.de, label = celltype)) +
   geom_point(shape = 21, color = "black", fill = "grey40", size = 3) +
   coord_cartesian(xlim = c(0, NA), ylim = c(0, NA)) +
@@ -243,7 +248,7 @@ ifome.n.long$celltype <- factor(ifome.n.long$celltype,
                                 levels = de.number$celltype)
 ```
 
-```{r fig.asp=0.5, fig.width=3}
+```{r fig.asp=0.5, fig.width=6}
 # plot iterferome output
 
 theme2 <-   theme_classic() +
@@ -361,7 +366,7 @@ ifome.n %>%
 ifome.n[, c(1, 2, 3, 7, 8, 9, 10)] %>% knitr::kable()
 ```
 
-```{r, fig.asp = 0.8, fig.width = 2}
+```{r, fig.asp = 0.8, fig.width = 4}
 # Plot fraction of DE genes in interferome, along with enrichment p values.
 
 plot.dat <- ifome.n.long
@@ -505,7 +510,7 @@ de_volcano <- function(celltype) {
 }
 ```
 
-```{r fig.asp=0.8, fig.width=2.5}
+```{r fig.asp=0.8, fig.width=4}
 for(i in names(de.genes)) {
   p <- de_volcano(celltype = i)
   
@@ -667,7 +672,7 @@ theme_dotplot <- theme(
 # extract plot data from Seurat::DotPlot
 Idents(seur) <- seur$celltype_covid
 p <- Seurat::DotPlot(object = seur, assay = "SCT", 
-                     features = rownames(de.genes$dec.APC)[1:50])
+                     features = rownames(de.genes$APC)[1:50])
 
 p.dat <- p$data
 
@@ -717,7 +722,7 @@ rownames(de.ann) <- NULL
 ```
 
 
-```{r fig.asp=1.1, fig.width=3}
+```{r fig.asp=1.1, fig.width=6}
 q <- ggplot(data = p.dat, aes(x = covid, y = features.plot)) +
   geom_point(aes(fill = avg.exp.scaled, size = pct.exp), shape = 21, stroke = 0, 
              color = "White") +
@@ -742,7 +747,7 @@ q <- ggplot(data = p.dat, aes(x = covid, y = features.plot)) +
 
 
 cowplot::ggsave2(q, 
-                 filename = "../results/04_de-genes-by-celltype/logfc_0.40/de/plots/dotplot_top50-dec.APC.pdf", 
+                 filename = "../results/04_de-genes-by-celltype/logfc_0.40/de/plots/dotplot_top50-APC.pdf", 
                  width = 6, height = 7, units = "in")
 
 print(q)
@@ -862,7 +867,7 @@ dotplot_go <- function(go.pdat.sub) {
 
 Here, after having combined all enriched GO categories from all cell types, we sort them by p value and pick the top 100, regardless of which cell type they come from. This is perhaps not the best way to filter, but one option that picks up the most highly enriched categories across most celltypes. But it does miss some celltypes whose enriched GO categories are not in the top 100.
 
-```{r fig.asp=1, fig.width=2.5}
+```{r fig.asp=1, fig.width=6}
 # plotting subset
 go.sub <- go.pdat[order(go.pdat$p.adjust, decreasing = FALSE)[1:100], ]
 
@@ -895,7 +900,7 @@ revigo <- read.csv("../results/04_de-genes-by-celltype/logfc_0.40/go/revigo/REVI
 ```
 
 
-```{r fig.width=2.85, fig.asp=1.2}
+```{r fig.width=6, fig.asp=1.2}
 # plotting subset
 to.keep <- revigo$term_ID[revigo$dispensability < 0.85]
 go.sub <- go.pdat[go.pdat$ID %in% to.keep, ]
@@ -942,7 +947,7 @@ leaf <- terminal(terms = as.character(revigo$term_ID), ontology = "P")
 length(leaf)
 ```
 
-```{r fig.asp=1, fig.width=3}
+```{r fig.asp=1, fig.width=6}
 # plot
 p <- dotplot_go(go.pdat.sub = go.pdat[go.pdat$ID %in% leaf, ])
 
@@ -954,7 +959,6 @@ ggsave(
 
 print(p)
 ```
-
 
 # Session Info
 ```{r}

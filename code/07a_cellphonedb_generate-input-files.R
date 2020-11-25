@@ -6,7 +6,7 @@ setwd("/home/arc78/scratch60/covid-placenta")
 library(Seurat)
 
 ### data ======================================================================
-seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
+seur <- readRDS("data/seurat-object_annotated.rds")
 
 ### subset by covid status ====================================================
 seur.cntrl <- subset(x = seur, subset = covid == "cntrl")
