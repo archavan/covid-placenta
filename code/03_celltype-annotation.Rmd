@@ -50,6 +50,7 @@ seur <- readRDS("../info/from-alice/placenta.rds")
 
 head(seur@meta.data)
 ```
+### Add sample metadata
 
 The `orig.ident` column in the metadata represents the sample IDs from the sample info table above. We just have rename them to left-pad the numbers for consistency, and set new cluster names as default idents.
 
@@ -70,6 +71,32 @@ seur$seurat_clusters <- factor(seur$seurat_clusters, levels = paste0("clust_", c
 
 # set seurat clusters as default idents
 Idents(seur) <- seur@meta.data$seurat_clusters
+```
+
+```{r}
+# add another column to metadata with renames orig.idents as COVID_1, CNTRL_1 instead of AL01, AL02, etc.
+AL_covid_mapping <- unique(seur@meta.data[, c("orig.ident", "covid")])
+
+AL_covid_mapping$renamed <- NA
+counter.covid <- 1
+counter.cntrl <- 1
+for(i in 1:nrow(AL_covid_mapping)) {
+  
+  if(AL_covid_mapping$covid[i] == "covid") {
+    AL_covid_mapping$renamed[i] <- paste0("COVID_", counter.covid)
+    counter.covid <- counter.covid + 1 
+  }
+  
+  if(AL_covid_mapping$covid[i] == "cntrl") {
+    AL_covid_mapping$renamed[i] <- paste0("CNTRL_", counter.cntrl)
+    counter.cntrl <- counter.cntrl + 1
+  }
+}
+
+seur@meta.data$orig.ident_renamed <- AL_covid_mapping$renamed[
+  match(x = seur@meta.data$orig.ident, 
+        table = AL_covid_mapping$orig.ident)
+]
 ```
 
 ## Average by cluster
@@ -449,9 +476,9 @@ bytissue[, c("cluster", "tissue", "fraction")] %>%
   kable_styling(full_width = FALSE)
 ```
 
-This doesn't necessarily clarify too many things. There are many clusters that have over 70% of the cells coming from the same tissue, but often not the tissue you expect, mostly for putatively trophoblast clusters. For example clusters 16 and 17 are either villous or syncytial trophoblast cells but they are coming mostly from decidua samples. You expect that for cluster 13, which is extravillous trophoblast but not for the other types. At least in the species that I have worked with, it is often difficult to separate the fetal tissue from maternal tissue. So this mixed result could be a result of that difficulty. It looks like we can use this a rough guide, but we can't necessarily rely of this analysis, i.e. the marker gene should take precedence over tissue of origin in cell type id because the latter is experimentally (and as a consequence, analytically) messy to disentangle.
+This is largely consistent with the putative annotations. All putatively trophoblast clusters come overwhelmingly from villi samples. The only exception is extravillous trophoblast cluster, which as expected, comes from decidua samples. At least in the species that I have worked with, it is often difficult to separate the fetal tissue from maternal tissue. Therefore, we use this analysis only as a rough guide, i.e. when there is a conflict between the two, the marker gene-based annotation should take precedence over tissue of origin in cell type id because the latter is experimentally (and as a consequence, analytically) messy to disentangle.
 
-Most clusters that have mixed origin, are putatively immune cell type clusters. This could suggest that the immune cell types are present on both maternal and fetal sides of the interface, and because they are the same cell type, they end up in the same cluster. This means that we can't confidently say for immune cells whether they are decidual or villous. For this reason, when such ambiguity is present, we will label them without the tissue prefix, i.e. for example `Tcell` instead of `dec.Tcell` or `vil.Tcell`.
+Most clusters that have mixed origin, are putative immune cell type clusters. This could suggest that the immune cell types are present on both maternal and fetal sides of the interface, and because they are the same cell type, they end up in the same cluster. This means that we can't confidently say for immune cells whether they are decidual or villous. For this reason, when such ambiguity is present, we will label them without the tissue prefix, i.e. for example `Tcell` instead of `dec.Tcell` or `vil.Tcell`.
 
 ## Marker genes
 ### Identify marker genes 
@@ -1433,31 +1460,6 @@ seur@meta.data$annotation_merged <- annotation$annotation_merged[match(
 
 ```
 
-```{r}
-# add another column to metadata with renames orig.idents as COVID_1, CNTRL_1 instead of AL01, AL02, etc.
-AL_covid_mapping <- unique(seur@meta.data[, c("orig.ident", "covid")])
-
-AL_covid_mapping$renamed <- NA
-counter.covid <- 1
-counter.cntrl <- 1
-for(i in 1:nrow(AL_covid_mapping)) {
-  
-  if(AL_covid_mapping$covid[i] == "covid") {
-    AL_covid_mapping$renamed[i] <- paste0("COVID_", counter.covid)
-    counter.covid <- counter.covid + 1 
-  }
-  
-  if(AL_covid_mapping$covid[i] == "cntrl") {
-    AL_covid_mapping$renamed[i] <- paste0("CNTRL_", counter.cntrl)
-    counter.cntrl <- counter.cntrl + 1
-  }
-}
-
-seur@meta.data$orig.ident_renamed <- AL_covid_mapping$renamed[
-  match(x = seur@meta.data$orig.ident, 
-        table = AL_covid_mapping$orig.ident)
-]
-```
 
 ```{r}
 # write seurat object
