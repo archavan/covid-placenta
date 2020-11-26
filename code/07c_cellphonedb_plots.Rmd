@@ -38,6 +38,65 @@ covid$means <- read.table("../results/06_cellphonedb/out/covid/means.txt", heade
 covid$pvals <- read.table("../results/06_cellphonedb/out/covid/pvalues.txt", header = TRUE, sep = "\t", quote = "")
 ```
 
+## Update sep character
+CellPhoneDB, when creating names for columns in means and pvals output files, join cell type names with a period, e.g. celltype1.celltype2. But our celltype names have periods (as well as underscores) in them. We'll replace the periods separating cell types with a double underscore, "__".
+```{r}
+# function
+replace_sep.char <- function(x) {
+  gsub("([a-z]{3}\\.[A-z]+_*\\d*)(\\.)([a-z]{3}\\.[A-z]+_*\\d*)", 
+       "\\1__\\3", 
+       x)
+}
+```
+
+```{r}
+# replace
+colnames(cntrl$means) <- replace_sep.char(names(cntrl$means))
+colnames(cntrl$pvals) <- replace_sep.char(names(cntrl$pvals))
+
+colnames(covid$means) <- replace_sep.char(names(covid$means))
+colnames(covid$pvals) <- replace_sep.char(names(covid$pvals))
+```
+
+
+## Update cell type labels
+Since we ran CellPhoneDB, we decided to update immune cell cluster labels to by removing their "dec." prefix to convey the uncertaintly about their tissue of origin. We need to replace the old labels with the new labels.
+
+```{r}
+# function to replace labels
+replace_labels <- function(x) {
+  
+  x <- gsub("dec.APC", "APC", x)
+  x <- gsub("dec.Bcells", "Bcell", x)
+  x <- gsub("dec.Tcell_1", "Tcell_1", x)
+  x <- gsub("dec.Tcell_2", "Tcell_2", x)
+  x <- gsub("dec.Tcell_3", "Tcell_3", x)
+  x <- gsub("dec.NK_1", "NK_1", x)
+  x <- gsub("dec.NK_2", "NK_2", x)
+  x <- gsub("dec.NK_3", "NK_3", x)
+  x <- gsub("dec.Mono_1", "Mono_1", x)
+  x <- gsub("dec.Mono_2", "Mono_2", x)
+  x <- gsub("dec.Gran", "Gran", x)
+  
+  return(x)
+  
+}
+```
+
+```{r}
+# replace
+cntrl$count$SOURCE <- replace_labels(cntrl$count$SOURCE)
+cntrl$count$TARGET <- replace_labels(cntrl$count$TARGET)
+colnames(cntrl$means) <- replace_labels(names(cntrl$means))
+colnames(cntrl$pvals) <- replace_labels(names(cntrl$pvals))
+
+covid$count$SOURCE <- replace_labels(covid$count$SOURCE)
+covid$count$TARGET <- replace_labels(covid$count$TARGET)
+colnames(covid$means) <- replace_labels(names(covid$means))
+colnames(covid$pvals) <- replace_labels(names(covid$pvals))
+```
+
+
 # Plots
 ## Number of interactions
 We'll remake the plots using CellPhoneDB output files. The first plot we'll make is of the number of interactions between each pair of cell types. 
@@ -78,8 +137,8 @@ theme_heatmap <- theme_bw() +
 ### Control
 ```{r}
 cntrl$count %>% 
-  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
-  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(SOURCE %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
   reorder_clusters() %>% 
 ggplot(., aes(SOURCE, TARGET)) +
   geom_tile(aes(fill = count)) +
@@ -91,8 +150,8 @@ ggplot(., aes(SOURCE, TARGET)) +
 ### Covid
 ```{r}
 covid$count %>% 
-  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
-  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
+  filter(!(SOURCE %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
   reorder_clusters() %>% 
   ggplot(., aes(SOURCE, TARGET)) +
   geom_tile(aes(fill = count)) +
@@ -119,8 +178,8 @@ count.diff$fc <- count.diff$count.covid / count.diff$count.cntrl
 ```{r}
 # plot difference in number of interactions (covid - control)
 p.dat <- count.diff %>% 
-  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
-  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  filter(!(SOURCE %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>%
   select(SOURCE, TARGET, diff) %>% 
   arrange(diff)
 
@@ -140,8 +199,8 @@ ggplot(p.dat, aes(SOURCE, TARGET)) +
 ```{r}
 # plot log fold change in number of interactions
 p.dat <- count.diff %>% 
-  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
-  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  filter(!(SOURCE %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>%
   select(SOURCE, TARGET, fc) %>%
   mutate(logfc = log(fc)) %>% 
   arrange(logfc)
@@ -208,16 +267,16 @@ covid$unique <- covid$means.pval %>%
 
 ```{r}
 # filter to keep only immune cells
-celltypes.keep <- c("dec.NK_1", "dec.NK_2", "dec.Tcell_1", "dec.Tcell_2", "dec.APC", "dec.Mono_1", "dec.Mono_2")
+celltypes.keep <- c("NK_1", "NK_2", "Tcell_1", "Tcell_2", "APC", "Mono_1", "Mono_2")
 
 pairs.keep <- c(
-  paste0(celltypes.keep[1], ".", celltypes.keep),
-  paste0(celltypes.keep[2], ".", celltypes.keep),
-  paste0(celltypes.keep[3], ".", celltypes.keep),
-  paste0(celltypes.keep[4], ".", celltypes.keep),
-  paste0(celltypes.keep[5], ".", celltypes.keep),
-  paste0(celltypes.keep[6], ".", celltypes.keep),
-  paste0(celltypes.keep[7], ".", celltypes.keep)
+  paste0(celltypes.keep[1], "__", celltypes.keep),
+  paste0(celltypes.keep[2], "__", celltypes.keep),
+  paste0(celltypes.keep[3], "__", celltypes.keep),
+  paste0(celltypes.keep[4], "__", celltypes.keep),
+  paste0(celltypes.keep[5], "__", celltypes.keep),
+  paste0(celltypes.keep[6], "__", celltypes.keep),
+  paste0(celltypes.keep[7], "__", celltypes.keep)
 )
 
 covid$unique.immune <- covid$unique %>% 
@@ -226,7 +285,7 @@ covid$unique.immune <- covid$unique %>%
 
 ```{r}
 # subset further to keep only those celltype pairs among immune cell types for which number of interactions in covid are more than in control.
-count.diff$celltype.pair <- paste0(count.diff$SOURCE, ".", count.diff$TARGET)
+count.diff$celltype.pair <- paste0(count.diff$SOURCE, "__", count.diff$TARGET)
 
 covid$unique.immune <- covid$unique.immune %>% 
   filter(celltype.pair %in% count.diff$celltype.pair[count.diff$diff > 0])
@@ -235,13 +294,16 @@ covid$unique.immune <- covid$unique.immune %>%
 
 ### Plot
 
-```{r fig.asp=1.9, fig.width=5}
+```{r fig.asp=2.5, fig.width=7}
 ggplot(covid$unique.immune, aes(celltype.pair, interacting_pair)) +
   geom_point(aes(color = log(mean), size = -log10(pval+0.001)), shape = 19) +
   scale_color_gradient(low = "#fdd0a2", high = "#d94801") +
-  scale_size(range = c(1, 4)) +
+  scale_size(range = c(1, 3)) +
   theme_heatmap +
-  theme(panel.grid = element_line(size = 0.35))
+  theme(
+    panel.grid = element_line(size = 0.35),
+    axis.text = element_text(size = 6)
+  )
 ```
 
 
