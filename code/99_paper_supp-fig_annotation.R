@@ -9,7 +9,7 @@ library(cowplot)
 library(ggrepel)
 
 ### data ======================================================================
-seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
+seur <- readRDS("data/seurat-object_annotated.rds")
 
 # average by cluster
 Idents(seur) <- "seurat_clusters"
@@ -178,8 +178,19 @@ stack.colors.35 <- c("#b8bd38",
                      "#cea864",
                      "#956534")
 
+## order of clusters
+clust.order.21 <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB", 
+                    "vil.FB", "vil.EVT", "vil.SCT", "vil.VCT", "vil.Ery", "vil.Hofb", 
+                    "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", 
+                    "Tcell_1", "Tcell_2", "Tcell_3")
+
+clust.order.35 <- c("dec.DSC_1", "dec.DSC_2", "dec.Endo.L", "dec.Endo", "dec.SMC", "dec.FB_1", "dec.FB_2",
+                    "vil.FB_1", "vil.FB_2", "vil.FB_3", "vil.EVT", "vil.SCT_1", "vil.SCT_2", "vil.VCT_1", "vil.VCT_2", "vil.VCT_3", "vil.VCT_4", "vil.Ery", "vil.Hofb_1", "vil.Hofb_2", "vil.Hofb_3", "vil.Hofb_4", "vil.Hofb_5", 
+                    "APC_1", "APC_2", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", 
+                    "Tcell_1", "Tcell_2", "Tcell_3")
+
 ## function -------------------------------------------------------------------
-plot_umap <- function(object, idents, colors, tag) {
+plot_umap <- function(object, idents, colors, tag, clust.order) {
   
   # set idents
   Idents(object) <- idents
@@ -190,11 +201,13 @@ plot_umap <- function(object, idents, colors, tag) {
   ulab <- gg$layers[[2]]$data # label coordinates
   
   # new colors
-  ulab <- ulab[order(as.character(ulab$ident)), ]
-  ulab$newcolors <- colors
+  ulab$ident <- factor(ulab$ident, levels = clust.order)
+  ulab <- ulab[order(ulab$ident), ]
+  ulab$newcolors <- alpha(colors, 0.5)
+  ulab$ident <- as.character(ulab$ident)
   
   # factors
-  udat$ident <- factor(udat$ident, levels = ulab$ident)
+  udat$ident <- factor(udat$ident, levels = clust.order)
   
   # plot
   p <- ggplot() +
@@ -229,10 +242,10 @@ plot_umap <- function(object, idents, colors, tag) {
 }
 
 ## plot: all annotations ------------------------------------------------------
-umap.full <- plot_umap(object = seur, idents = "annotation", colors = stack.colors.35, tag = "B")
+umap.full <- plot_umap(object = seur, idents = "annotation", colors = stack.colors.35, tag = "B", clust.order = clust.order.35)
 
 ## plot: merged annotations ---------------------------------------------------
-umap.merged <- plot_umap(object = seur, idents = "annotation_merged", colors = stack.colors.20, tag = "C")
+umap.merged <- plot_umap(object = seur, idents = "annotation_merged", colors = stack.colors.20, tag = "C", clust.order = clust.order.21)
 
 ### arrange ===================================================================
 layout <- c(area(t = 1, l = 1, b = 45, r = 70),

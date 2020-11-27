@@ -18,8 +18,8 @@ library(ungeviz) # for geom_hpline
 
 ### UMAP ======================================================================
 ## data -----------------------------------------------------------------------
-seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
-celltypes <- seur@meta.data$annotation_merged %>% unique()
+seur <- readRDS("data/seurat-object_annotated.rds")
+celltypes <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB", "vil.FB", "vil.EVT", "vil.SCT", "vil.VCT", "vil.Ery", "vil.Hofb", "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", "Tcell_1", "Tcell_2", "Tcell_3")
 
 ## colours for clusters to match with stacked barplot from supp. fig ----------
 stack.colors <- c("#6cb9a0",
@@ -51,25 +51,26 @@ umap.gg <- DimPlot(seur, label = TRUE, shuffle = TRUE) # save ggplot object, ext
 udat <- umap.gg$data # point coordinates
 ulab <- umap.gg$layers[[2]]$data # label coordinates
 
-ulab <- ulab[order(as.character(ulab$ident)), ]
+ulab$ident <- factor(ulab$ident, levels = celltypes)
+ulab <- ulab[order(ulab$ident), ]
 ulab$newcolours <- stack.colors
 ulab <- mutate(ulab, 
                "full_lab" = case_when(
-                 ident == "dec.APC" ~ "dec.APC (Antigen presenting cell)",
-                 ident == "dec.Bcells" ~ "dec.Bcells (B cell)",
+                 ident == "APC" ~ "APC (Antigen presenting cell)",
+                 ident == "Bcell" ~ "Bcell (B cell)",
                  ident == "dec.DSC" ~ "dec.DSC (Decidual stromal cell)",
                  ident == "dec.Endo" ~ "dec.Endo (Endothelial)",
                  ident == "dec.FB" ~ "dec.FB (Fibroblast)",
-                 ident == "dec.Gran" ~ "dec.Gran (Granulocyte)",
-                 ident == "dec.Mono_1" ~ "dec.Mono_1 (Monocyte)",
-                 ident == "dec.Mono_2" ~ "dec.Mono_2",
-                 ident == "dec.NK_1" ~ "dec.NK_1 (Natural killer)",
-                 ident == "dec.NK_2" ~ "dec.NK_2",
-                 ident == "dec.NK_3" ~ "dec.NK_3",
+                 ident == "Gran" ~ "Gran (Granulocyte)",
+                 ident == "Mono_1" ~ "Mono_1 (Monocyte)",
+                 ident == "Mono_2" ~ "Mono_2",
+                 ident == "NK_1" ~ "NK_1 (Natural killer)",
+                 ident == "NK_2" ~ "NK_2",
+                 ident == "NK_3" ~ "NK_3",
                  ident == "dec.SMC" ~ "dec.SMC (Smooth muscle cell)",
-                 ident == "dec.Tcell_1" ~ "dec.Tcell_1 (T cell)",
-                 ident == "dec.Tcell_2" ~ "dec.Tcell_2",
-                 ident == "dec.Tcell_3" ~ "dec.Tcell_3",
+                 ident == "Tcell_1" ~ "Tcell_1 (T cell)",
+                 ident == "Tcell_2" ~ "Tcell_2",
+                 ident == "Tcell_3" ~ "Tcell_3",
                  ident == "vil.Ery" ~ "vil.Ery (Erythrocyte/blast)",
                  ident == "vil.EVT" ~  "vil.EVT (Extravillous trophoblast)",
                  ident == "vil.FB" ~ "vil.FB (Fibroblast)",
@@ -77,8 +78,6 @@ ulab <- mutate(ulab,
                  ident == "vil.SCT" ~ "vil.SCT (Syncytial trophoblast)",
                  ident == "vil.VCT" ~ "vil.VCT (Villous cytotrophoblast)"
                ))
-
-udat$ident <- factor(udat$ident, levels = ulab$ident)
 
 ## plot -----------------------------------------------------------------------
 umap <- ggplot() +
@@ -145,7 +144,7 @@ seur$celltype_covid <- paste0(seur$annotation_merged, "_", seur$covid)
 
 ## theme for DE genes faceted dotplot -----------------------------------------
 theme_dotplot <- theme(
-  plot.margin = margin(5.5, 5.5, 1, 5.5),
+  plot.margin = margin(5.5, 5.5, 5, 5.5),
   panel.background = element_blank(),
   text = element_text(color = "Black"),
   panel.grid = element_blank(),
@@ -162,7 +161,7 @@ theme_dotplot <- theme(
   legend.direction = "horizontal",
   legend.box = "horizontal",
   legend.background = element_blank(),
-  legend.box.spacing = unit(0.5, "lines"),
+  legend.box.spacing = unit(0.2, "lines"),
   legend.title.align = 0,
   legend.text = element_text(size = 5),
   legend.key.size = unit(0.5, "lines"),
@@ -171,7 +170,7 @@ theme_dotplot <- theme(
 )
 
 ## dotplot function -----------------------------------------------------------
-plot_splitdot <- function(object, features, exclude.celltypes = c()) {
+plot_splitdot <- function(object, features, exclude.celltypes = c(), clust.order) {
   
   # idents combined for celltype and covid
   Idents(object) <- object$celltype_covid
@@ -241,6 +240,8 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
   plot.dat$features.plot <- factor(plot.dat$features.plot, 
                                    levels = rownames(cdat))
   
+  plot.dat$celltype <- factor(plot.dat$celltype, levels = clust.order)
+  
   # prepare annotation data (hpline for DE genes)
   de.ann <- de.genes
   de.ann <- do.call(rbind, de.ann)
@@ -250,6 +251,7 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
   )
   de.ann$diff.exp <- de.ann$p_val_adj < 0.05
   de.ann$diff.exp <- tolower(as.character(de.ann$diff.exp))
+  de.ann$celltype <- factor(de.ann$celltype, levels = clust.order)
   
   # plot
   q <- ggplot(data = plot.dat, 
@@ -258,8 +260,7 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
                shape = 21, stroke = 0, 
                color = "White") +
     scale_fill_gradient(low = "White", 
-                        high = "#4393c3", 
-                      #  high = "#d94801", 
+                        high = "#d94801", 
                         name = "avg. exp. (scaled)",
                         guide = guide_colorbar(
                           title.position = "top", 
@@ -296,7 +297,7 @@ plot_splitdot <- function(object, features, exclude.celltypes = c()) {
 }
 
 ## exclude celltypes lists ----------------------------------------------------
-exclude <- c("dec.Tcell_3", "dec.Bcells", "dec.Gran", "vil.Ery")
+exclude <- c("Tcell_3", "Bcell", "Gran", "vil.Ery")
 
 ## select genes to plot: top x number of genes from clusters of interest ------
 de.genes <- lapply(de.genes,  # sort de.genes by logfc
@@ -319,7 +320,8 @@ features <- select_genes(n = numgenes, exclude.celltypes = exclude)
 splitdot.top5 <- plot_splitdot(
   object = seur, 
   features = features,
-  exclude.celltypes = exclude
+  exclude.celltypes = exclude, 
+  clust.order = celltypes[!(celltypes %in% exclude)] 
 )
 
 cowplot::ggsave2(
@@ -334,8 +336,7 @@ ifome.n <- read.csv("results/04_de-genes-by-celltype/logfc_0.40/interferome/file
 
 ## color by pval --------------------------------------------------------------
 ifome.n$color <- ifelse(test = ifome.n$pval < 0.05, 
-                        yes = "#4393c3", 
-                      #  yes = "#d94801", 
+                        yes = "#d94801", 
                         no = "Grey50")
 
 ## tidy -----------------------------------------------------------------------
@@ -461,7 +462,7 @@ meta.long$Description_new <- factor(
 meta.long$celltype <- factor(
   meta.long$celltype,
   levels = c(
-    "vil.EVT", "vil.SCT", "vil.Hofb", "dec.DSC", "dec.Endo", "dec.SMC", "dec.NK_3", "dec.NK_2", "dec.NK_1", "dec.Tcell_1", "dec.APC", "dec.FB", "vil.FB", "dec.Mono_1", "vil.VCT", "dec.Mono_2", "dec.Tcell_2"
+    "vil.EVT", "vil.SCT", "vil.Hofb", "dec.DSC", "dec.Endo", "dec.SMC", "NK_3", "NK_2", "NK_1", "Tcell_1", "APC", "dec.FB", "vil.FB", "Mono_1", "vil.VCT", "Mono_2", "Tcell_2"
   )
 )
 
@@ -471,8 +472,7 @@ p.meta <- ggplot(meta.long, aes(x = celltype, y = Description_new)) +
   scale_fill_gradient(
     name = "- log(p)",
     low = "white", 
-    high = "#4393c3",
-  #  high = "#d94801",
+    high = "#d94801",
     limits = c(0, 20), 
     oob = scales::squish,
     breaks = c(0, 10, 20),
@@ -509,6 +509,35 @@ cowplot::ggsave2(
 cpdb.cntrl <- read.table("results/06_cellphonedb/out/cntrl/count_network.txt", header = TRUE, sep = "\t", quote = "")
 cpdb.covid <- read.table("results/06_cellphonedb/out/covid/count_network.txt", header = TRUE, sep = "\t", quote = "")
 
+## Update cell type labels ----------------------------------------------------
+# Since we ran CellPhoneDB, we decided to update immune cell cluster labels to by removing their “dec.” prefix to convey the uncertainty about their tissue of origin. We need to replace the old labels with the new labels.
+
+# function to replace labels
+replace_labels <- function(x) {
+  
+  x <- gsub("dec.APC", "APC", x)
+  x <- gsub("dec.Bcells", "Bcell", x)
+  x <- gsub("dec.Tcell_1", "Tcell_1", x)
+  x <- gsub("dec.Tcell_2", "Tcell_2", x)
+  x <- gsub("dec.Tcell_3", "Tcell_3", x)
+  x <- gsub("dec.NK_1", "NK_1", x)
+  x <- gsub("dec.NK_2", "NK_2", x)
+  x <- gsub("dec.NK_3", "NK_3", x)
+  x <- gsub("dec.Mono_1", "Mono_1", x)
+  x <- gsub("dec.Mono_2", "Mono_2", x)
+  x <- gsub("dec.Gran", "Gran", x)
+  
+  return(x)
+  
+}
+
+# replace
+cpdb.cntrl$SOURCE <- replace_labels(cpdb.cntrl$SOURCE)
+cpdb.cntrl$TARGET <- replace_labels(cpdb.cntrl$TARGET)
+
+cpdb.covid$SOURCE <- replace_labels(cpdb.covid$SOURCE)
+cpdb.covid$TARGET <- replace_labels(cpdb.covid$TARGET)
+
 ## create a dataset of differences --------------------------------------------
 count.fc <- inner_join(x = cpdb.cntrl, y = cpdb.covid, 
                        by = c("SOURCE", "TARGET"),
@@ -518,8 +547,8 @@ count.fc$fc <- count.fc$count.covid / count.fc$count.cntrl
 
 # plot log fold change in number of interactions
 cpdb <- count.fc %>% 
-  filter(!(SOURCE %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>% 
-  filter(!(TARGET %in% c("dec.Gran", "dec.Bcells", "vil.Ery", "dec.Tcell_3"))) %>%
+  filter(!(SOURCE %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>% 
+  filter(!(TARGET %in% c("Gran", "Bcell", "vil.Ery", "Tcell_3"))) %>%
   select(SOURCE, TARGET, fc) %>%
   mutate(logfc = log(fc)) %>% 
   arrange(logfc) %>% 
@@ -529,13 +558,12 @@ cpdb <- count.fc %>%
   ggplot(., aes(SOURCE, TARGET)) +
   geom_tile(aes(fill = logfc)) +
   scale_fill_gradient2(
-    low = alpha("#d94801", 1), mid = "white", high = "#4393c3", 
-  #  low = "#4393c3", mid = "white", high = "#d94801", 
+    low = "#4393c3", mid = "white", high = "#d94801", 
     midpoint = 0,
-    # limits = c(-0.5, 0.5), 
+    # limits = c(-0.5, 0.5),
     # oob = scales::squish,
-    # breaks = c(-0.5, 0, 0.5),
-    # labels = c("< -0.5", "0", "> 0.5"),
+    # breaks = c(-0.75, 0, 0.5),
+    # labels = c("< -0.75", "0", "> 0.5"),
     name = "log(COVID / ctrl)",
     guide = guide_colorbar(ticks.colour = "black")
   ) +
@@ -543,7 +571,7 @@ cpdb <- count.fc %>%
   theme_bw() +
   theme(
     aspect.ratio = 1,
-    plot.margin = margin(2, 2, 1, 6.5),
+    plot.margin = margin(2, 2, 1, 4.5),
     panel.border = element_rect(size = 0.25, colour = "black"),
     panel.grid = element_blank(),
     axis.ticks = element_line(size = 0.25),
@@ -566,8 +594,7 @@ cowplot::ggsave2(
 )
 
 ## HSPA1A violin plot =========================================================
-seur$annotation_merged <- factor(seur$annotation_merged, 
-                                 levels = sort(unique(seur$annotation_merged)))
+seur$annotation_merged <- factor(seur$annotation_merged, levels = celltypes)
 Idents(seur) <- seur$annotation_merged
 
 hsp <- VlnPlot(object = seur, 
@@ -580,13 +607,13 @@ hsp <- VlnPlot(object = seur,
   scale_fill_manual(
     breaks = c("cntrl", "covid"), 
     labels = c("ctrl", "COVID"),
-    values = c(alpha("#d94801", 1), alpha("#4393c3", 1))
-   # values = c(alpha("#96003e", 1), alpha("#3924e3", 1))
+    values = c(alpha("#4393c3", 0.8), alpha("#d94801", 0.8))
+    #values = c(alpha("#96003e", 1), alpha("#3924e3", 1))
   ) + 
   coord_cartesian(clip = "off") +
   theme_classic() +
   theme(
-    plot.margin = margin(0, 5.5, 1, 5.5),
+    plot.margin = margin(0, 5.5, 5, 5.5),
     plot.title = element_text(size = 5, color = "black"),
     panel.grid = element_blank(),
     axis.line = element_line(size = 0.25),
@@ -637,9 +664,9 @@ composite <- plot_grid(ab, cdef, ncol = 2, rel_widths = c(3.75, 3))
 # In the split dot plot, it's not easy to make the outer panel border black while keeping all internal facet borders grey. To get around that, we can just draw a black rectangle on top that covers the outer panel border. To get x and y coords and the dimensions in inches: saved the composite plot to desired dims, and then got the values from illustrator. 
 rect <- rectGrob(
   x = unit(0.5497, "in"),
-  y = unit(0.8539, "in"),
-  width = unit(3.1242, "in"),
-  height = unit(4.5661, "in"),
+  y = unit(8.5-7.6489, "in"),
+  width = unit(3.6739-0.5497, "in"),
+  height = unit(7.6489-2.9912, "in"),
   hjust = 0, vjust = 0,
   gp = gpar(fill = NA, color = "black", lwd = 0.35) 
 )
@@ -648,22 +675,15 @@ composite <- ggdraw(composite) +
   draw_grob(rect)
 
 cowplot::ggsave2(
-#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.jpeg",
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-2.jpeg",
+#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v4_option-1.png",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v4_option-2.png",
   composite, 
   width = 6.75, height = 8.5, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.png",
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-2.png",
-  composite, 
-  width = 6.75, height = 8.5, units = "in", type = "cairo", dpi = 600
-)
-
-cowplot::ggsave2(
-#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-1.pdf",
-  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v3_option-2.pdf",
+#  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v4_option-1.pdf",
+  filename = "results/99_paper-figures/fig5_single-cell/05_composite_v4_option-2.pdf",
   composite, 
   width = 6.75, height = 8.5, units = "in"
 )

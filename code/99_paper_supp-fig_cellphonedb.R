@@ -16,6 +16,52 @@ covid <- list()
 covid$means <- read.table("results/06_cellphonedb/out/covid/means.txt", header = TRUE, sep = "\t", quote = "")
 covid$pvals <- read.table("results/06_cellphonedb/out/covid/pvalues.txt", header = TRUE, sep = "\t", quote = "")
 
+### update sep characters =====================================================
+# CellPhoneDB, when creating names for columns in means and pvals output files, join cell type names with a period, e.g. celltype1.celltype2. But our celltype names have periods (as well as underscores) in them. We’ll replace the periods separating cell types with a double underscore, "__".
+
+# function
+replace_sep.char <- function(x) {
+  gsub("([a-z]{3}\\.[A-z]+_*\\d*)(\\.)([a-z]{3}\\.[A-z]+_*\\d*)", 
+       "\\1__\\3", 
+       x)
+}
+
+# replace
+colnames(cntrl$means) <- replace_sep.char(names(cntrl$means))
+colnames(cntrl$pvals) <- replace_sep.char(names(cntrl$pvals))
+
+colnames(covid$means) <- replace_sep.char(names(covid$means))
+colnames(covid$pvals) <- replace_sep.char(names(covid$pvals))
+
+### Update cluster annotations ================================================
+# Since we ran CellPhoneDB, we decided to update immune cell cluster labels to by removing their “dec.” prefix to convey the uncertaintly about their tissue of origin. We need to replace the old labels with the new labels.
+
+# function to replace labels
+replace_labels <- function(x) {
+  
+  x <- gsub("dec.APC", "APC", x)
+  x <- gsub("dec.Bcells", "Bcell", x)
+  x <- gsub("dec.Tcell_1", "Tcell_1", x)
+  x <- gsub("dec.Tcell_2", "Tcell_2", x)
+  x <- gsub("dec.Tcell_3", "Tcell_3", x)
+  x <- gsub("dec.NK_1", "NK_1", x)
+  x <- gsub("dec.NK_2", "NK_2", x)
+  x <- gsub("dec.NK_3", "NK_3", x)
+  x <- gsub("dec.Mono_1", "Mono_1", x)
+  x <- gsub("dec.Mono_2", "Mono_2", x)
+  x <- gsub("dec.Gran", "Gran", x)
+  
+  return(x)
+  
+}
+
+# replace
+colnames(cntrl$means) <- replace_labels(names(cntrl$means))
+colnames(cntrl$pvals) <- replace_labels(names(cntrl$pvals))
+
+colnames(covid$means) <- replace_labels(names(covid$means))
+colnames(covid$pvals) <- replace_labels(names(covid$pvals))
+
 ### melt and join means and pval data =========================================
 cntrl$means.long <- pivot_longer(data = cntrl$means, 
                                  cols = 12:ncol(cntrl$means), 
@@ -55,16 +101,16 @@ covid$unique <- covid$means.pval %>%
   select(-c("interaction_celltype.pair"))
 
 ### filter to keep only immune cells ==========================================
-celltypes.keep <- c("dec.NK_1", "dec.NK_2", "dec.Tcell_1", "dec.Tcell_2", "dec.APC", "dec.Mono_1", "dec.Mono_2")
+celltypes.keep <- c("NK_1", "NK_2", "Tcell_1", "Tcell_2", "APC", "Mono_1", "Mono_2")
 
 pairs.keep <- c(
-  paste0(celltypes.keep[1], ".", celltypes.keep),
-  paste0(celltypes.keep[2], ".", celltypes.keep),
-  paste0(celltypes.keep[3], ".", celltypes.keep),
-  paste0(celltypes.keep[4], ".", celltypes.keep),
-  paste0(celltypes.keep[5], ".", celltypes.keep),
-  paste0(celltypes.keep[6], ".", celltypes.keep),
-  paste0(celltypes.keep[7], ".", celltypes.keep)
+  paste0(celltypes.keep[1], "__", celltypes.keep),
+  paste0(celltypes.keep[2], "__", celltypes.keep),
+  paste0(celltypes.keep[3], "__", celltypes.keep),
+  paste0(celltypes.keep[4], "__", celltypes.keep),
+  paste0(celltypes.keep[5], "__", celltypes.keep),
+  paste0(celltypes.keep[6], "__", celltypes.keep),
+  paste0(celltypes.keep[7], "__", celltypes.keep)
 )
 
 covid$unique.immune <- covid$unique %>% 
@@ -74,10 +120,11 @@ covid$unique.immune <- covid$unique %>%
 # celltype pair and gene pair labels when plotted as they are, are hard to read. We want to separate the labels so that we can plot them in different colors or add a prominent spacer that can help with reading the labels. 
 
 ## separate celltype pair into individual celltypes ----------------------------
-covid$unique.immune$celltype1 <- gsub("(dec\\..*)(\\.)(dec.*)", 
+covid$unique.immune$celltype1 <- gsub("([A-z]+_*\\d*)(__)([A-z]+_*\\d*)", 
                                       "\\1", 
                                       covid$unique.immune$celltype.pair)
-covid$unique.immune$celltype2 <- gsub("(dec\\..*)(\\.)(dec.*)", 
+
+covid$unique.immune$celltype2 <- gsub("([A-z]+_*\\d*)(__)([A-z]+_*\\d*)", 
                                       "\\3", 
                                       covid$unique.immune$celltype.pair)
 
@@ -93,12 +140,10 @@ covid$unique.immune$gene2 <- gsub("(.*)(_)(.*)",
 # using ggtext: https://github.com/wilkelab/ggtext
 
 # add colour to genes
-covid$unique.immune$interacting_pair <- glue("<span style='color:#a50026
-'>{covid$unique.immune$gene1}</span> <span style='color:#bdbdbd'>&</span> <span style='color:#313695'>{covid$unique.immune$gene2}</span>")
+covid$unique.immune$interacting_pair <- glue("<span style='color:#a50026'>{covid$unique.immune$gene1}</span> <span style='color:#bdbdbd'>&</span> <span style='color:#313695'>{covid$unique.immune$gene2}</span>")
 
 # add colour to celltypes
-covid$unique.immune$celltype.pair <- glue("<span style='color:#a50026
-'>{covid$unique.immune$celltype1}</span> <span style='color:#bdbdbd'>&</span> <span style='color:#313695'>{covid$unique.immune$celltype2}</span>")
+covid$unique.immune$celltype.pair <- glue("<span style='color:#a50026'>{covid$unique.immune$celltype1}</span> <span style='color:#bdbdbd'>&</span> <span style='color:#313695'>{covid$unique.immune$celltype2}</span>")
 
 ### plot ======================================================================
 cpdb <- ggplot(covid$unique.immune, aes(celltype.pair, interacting_pair)) +
@@ -127,8 +172,15 @@ cpdb <- ggplot(covid$unique.immune, aes(celltype.pair, interacting_pair)) +
 
 cowplot::ggsave2(
   cpdb,
-  filename = "results/99_paper-figures/supp-fig_cellphonedb/supp-fig_cellphonedb_v1.pdf",
+  filename = "results/99_paper-figures/supp-fig_cellphonedb/supp-fig_cellphonedb_v2.pdf",
   width = 5.75 , height = 10, units = "in"
 )
+
+cowplot::ggsave2(
+  cpdb,
+  filename = "results/99_paper-figures/supp-fig_cellphonedb/supp-fig_cellphonedb_v2.png",
+  width = 5.75 , height = 10, units = "in", type = "cairo", dpi = 600
+)
+
 
 ### end =======================================================================

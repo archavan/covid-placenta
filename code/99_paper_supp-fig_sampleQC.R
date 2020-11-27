@@ -9,9 +9,10 @@ library(ggrepel) # plotting
 library(patchwork)
 library(ggthemes)
 library(cowplot)
+library(grid)
 
 ### data ======================================================================
-seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
+seur <- readRDS("data/seurat-object_annotated.rds")
 
 ### uUMI per sample ===========================================================
 n.umi <- ggplot(data = seur@meta.data, 
@@ -20,8 +21,8 @@ n.umi <- ggplot(data = seur@meta.data,
   facet_grid(. ~ covid + tissue, 
              space = "free", 
              scales = "free",
-             labeller = as_labeller(c(cntrl = "ctrl", 
-                                      covid = "COVID", 
+             labeller = as_labeller(c(cntrl = "", # will be added later with textGrob
+                                      covid = "", 
                                       decidua = "Decidua", 
                                       villi = "Villi"))) +
   labs(tag = "A", x = "Sample", y = "nUMI") +
@@ -46,8 +47,8 @@ n.gene <- ggplot(data = seur@meta.data,
   facet_grid(. ~ covid + tissue, 
              space = "free", 
              scales = "free",
-             labeller = as_labeller(c(cntrl = "ctrl", 
-                                      covid = "COVID", 
+             labeller = as_labeller(c(cntrl = "", # will be added later with textGrob
+                                      covid = "", 
                                       decidua = "Decidua", 
                                       villi = "Villi"))) +
   labs(tag = "B", x = "Sample", y = "nGene") +
@@ -106,6 +107,12 @@ stack.colors <- c("#6cb9a0",
                   "#e2c36e",
                   "#836400") # colors from https://medialab.github.io/iwanthue/
 
+clust.order <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB", 
+                 "vil.FB", "vil.EVT", "vil.SCT", "vil.VCT", "vil.Ery", "vil.Hofb", 
+                 "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", 
+                 "Tcell_1", "Tcell_2", "Tcell_3")
+
+cell.sample$celltype <- factor(cell.sample$celltype, levels = clust.order)
 
 bar.sample <- ggplot(data = cell.sample %>% 
                        filter(frac > 0)) +
@@ -116,8 +123,8 @@ bar.sample <- ggplot(data = cell.sample %>%
   facet_grid(. ~ covid + tissue, 
              space = "free_x", 
              scales = "free_x",
-             labeller = as_labeller(c(cntrl = "ctrl",
-                                      covid = "COVID",
+             labeller = as_labeller(c(cntrl = "",
+                                      covid = "",
                                       decidua = "Decidua",
                                       villi = "Villi"))
              ) +
@@ -137,8 +144,6 @@ bar.sample <- ggplot(data = cell.sample %>%
     legend.title = element_text(size = 5),
     legend.text = element_text(size = 5)
   )
-
-bar.sample
 
 ### umap colored by sample ====================================================
 theme_umap <- theme_classic(base_line_size = 0.25) +
@@ -181,7 +186,7 @@ umap.cntrl <- ggplot(
   data = umap.split.gg$data[umap.split.gg$data$ident == "cntrl", ],
   aes(x = UMAP_1, y = UMAP_2)) +
   geom_point(size = 0.1, color = "grey40") +
-  annotate(geom = "text", label = "Control", 
+  annotate(geom = "text", label = "ctrl", 
            x = Inf, y = -Inf, hjust = 1.25, vjust = -0.5, size = 6/.pt) +
   labs(tag = "D") +
   theme_umap
@@ -190,7 +195,7 @@ umap.covid <- ggplot(
   data = umap.split.gg$data[umap.split.gg$data$ident == "covid", ],
   aes(x = UMAP_1, y = UMAP_2)) +
   geom_point(size = 0.1, color = "grey40") +
-  annotate(geom = "text", label = "Covid", 
+  annotate(geom = "text", label = "COVID", 
            x = Inf, y = -Inf, hjust = 1.25, vjust = -0.5, size = 6/.pt) +
   theme_umap
 
@@ -200,19 +205,95 @@ row2 <- bar.sample
 row3 <- umap.cntrl + umap.covid + umap.sample + plot_layout(widths = c(1, 1, 1))
 
 composite <- row1 / row2 / row3 +
-  plot_layout(heights = c(1.75, 2.5, 1.85)) &
+  plot_layout(heights = c(1.75, 2.5, 2)) &
   theme(legend.justification = "left")
 
+# It's not easy to label nested facet labels appropriately using ggplot. The higher level is printed twice (ctrl is printed for both decidua and villi; same for COVID). We printed an empty string for these instead above when making the plot. Now using textGrob and linesGrobs, and cooridinates in inches (for a 6x6 inch final figure dimensions), we will add the lines and text. (I first saved the plot as pdf, opened in illustrator, grabbed all inch coordniates that are used below.)
+
+l1 <- linesGrob(
+  x = unit(c(  0.6040,   0.6040,   1.5037,   1.5037), units = "in"), 
+  y = unit(c(6-0.5069, 6-0.4433, 6-0.4433, 6-0.5069), units = "in"),
+  gp = gpar(colour = "black", lwd = 0.5) 
+)
+t1 <- textGrob(label = "ctrl", 
+               x = unit(mean(c(0.6040, 1.5037)), "in"), 
+               y = unit(6-0.3749, "in"), 
+               just = c(0.5, 0), 
+               gp = gpar(fontsize = 5, col = "black"))
+
+l2 <- linesGrob(
+  x = unit(c(  1.5799,   1.5799,   2.3269,   2.3269), units = "in"), 
+  y = unit(c(6-0.5069, 6-0.4433, 6-0.4433, 6-0.5069), units = "in"),
+  gp = gpar(colour = "black", lwd = 0.5) 
+)
+t2 <- textGrob(label = "COVID", 
+               x = unit(mean(c(1.5799, 2.3269)), "in"), 
+               y = unit(6-0.3749, "in"), 
+               just = c(0.5, 0), 
+               gp = gpar(fontsize = 5, col = "black"))
+
+l3 <- linesGrob(
+  x = unit(c(  2.8856,   2.8856,   3.7851,   3.7851), units = "in"), 
+  y = unit(c(6-0.5069, 6-0.4433, 6-0.4433, 6-0.5069), units = "in"),
+  gp = gpar(colour = "black", lwd = 0.5) 
+)
+t3 <- textGrob(label = "ctrl", 
+               x = unit(mean(c(2.8856, 3.7851)), "in"), 
+               y = unit(6-0.3749, "in"), 
+               just = c(0.5, 0), 
+               gp = gpar(fontsize = 5, col = "black"))
+
+l4 <- linesGrob(
+  x = unit(c(  3.8613,   3.8613,   4.6083,   4.6083), units = "in"), 
+  y = unit(c(6-0.5069, 6-0.4433, 6-0.4433, 6-0.5069), units = "in"),
+  gp = gpar(colour = "black", lwd = 0.5) 
+)
+t4 <- textGrob(label = "COVID", 
+               x = unit(mean(c(3.8613, 4.6083)), "in"), 
+               y = unit(6-0.3749, "in"), 
+               just = c(0.5, 0), 
+               gp = gpar(fontsize = 5, col = "black"))
+
+l5 <- linesGrob(
+  x = unit(c(  0.6040,   0.6040,   2.7608,   2.7608), units = "in"), 
+  y = unit(c(6-2.5694, 6-2.5058, 6-2.5058, 6-2.5694), units = "in"),
+  gp = gpar(colour = "black", lwd = 0.5) 
+)
+t5 <- textGrob(label = "ctrl", 
+               x = unit(mean(c(0.6040, 2.7608)), "in"), 
+               y = unit(6-2.4375, "in"), 
+               just = c(0.5, 0), 
+               gp = gpar(fontsize = 5, col = "black"))
+
+l6 <- linesGrob(
+  x = unit(c(  2.8369,   2.8369,   4.6083,   4.6083), units = "in"), 
+  y = unit(c(6-2.5694, 6-2.5058, 6-2.5058, 6-2.5694), units = "in"),
+  gp = gpar(colour = "black", lwd = 0.5) 
+)
+t6 <- textGrob(label = "COVID", 
+               x = unit(mean(c(2.8369, 4.6083)), "in"), 
+               y = unit(6-2.4375, "in"), 
+               just = c(0.5, 0), 
+               gp = gpar(fontsize = 5, col = "black"))
+
+composite <- ggdraw(composite) + 
+  draw_grob(l1) + draw_grob(t1) + 
+  draw_grob(l2) + draw_grob(t2) +
+  draw_grob(l3) + draw_grob(t3) +
+  draw_grob(l4) + draw_grob(t4) +
+  draw_grob(l5) + draw_grob(t5) +
+  draw_grob(l6) + draw_grob(t6)
+
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v1.pdf",
   composite, 
-  width = 6, height = 6, units = "in"
+  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v2.png",
+  width = 6, height = 6, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
+  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v2.pdf",
   composite, 
-  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v1.png",
-  width = 6, height = 6, units = "in", type = "cairo", dpi = 600
+  width = 6, height = 6, units = "in"
 )
 
 ### end  ======================================================================

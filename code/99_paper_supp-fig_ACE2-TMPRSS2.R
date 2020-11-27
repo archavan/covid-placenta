@@ -6,7 +6,11 @@ library(Seurat)
 library(patchwork)
 
 # data
-seur <- readRDS("results/02_annotation/seurat-object_annotated.rds")
+seur <- readRDS("data/seurat-object_annotated.rds")
+
+clust.order <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB", "vil.FB", "vil.EVT", "vil.SCT", "vil.VCT", "vil.Ery", "vil.Hofb", "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", "Tcell_1", "Tcell_2", "Tcell_3")
+
+seur@meta.data$annotation_merged <- factor(seur@meta.data$annotation_merged, levels = clust.order)
 
 ### violin plots ===============================================================
 # colours to match umap
@@ -37,8 +41,6 @@ stack.colors <- c("#6cb9a0",
 VlnPlot2 <- function(object = seur, features) {
   
   Idents(object) <- object$annotation_merged
-  object$annotation_merged <- factor(object$annotation_merged, 
-                                     levels = sort(unique(object$annotation_merged)))
   
   p <- VlnPlot(object = object, 
                features = features, 
@@ -73,7 +75,7 @@ vln.tmprss2 <- VlnPlot2(features = c("TMPRSS2"))
 vln <- vln.ace2 + vln.tmprss2 + plot_layout(ncol = 2)
 
 ggsave(
-  filename = "results/99_paper-figures/supp-fig_ACE2-TMPRSS2/supp-fig_ACE2-TMPRSS2_violin.jpeg",
+  filename = "results/99_paper-figures/supp-fig_ACE2-TMPRSS2/supp-fig_ACE2-TMPRSS2_violin.png",
   vln,
   width = 5, height = 2, units = "in",
   type = "cairo", dpi = 600
@@ -122,7 +124,7 @@ f.tmprss2 <- FeaturePlot2(features = "TMPRSS2")
 fplot <- f.ace2 + f.tmprss2 + plot_layout(ncol = 2)
 
 ggsave(
-  filename = "results/99_paper-figures/supp-fig_ACE2-TMPRSS2/supp-fig_ACE2-TMPRSS2_feature-plot.jpeg",
+  filename = "results/99_paper-figures/supp-fig_ACE2-TMPRSS2/supp-fig_ACE2-TMPRSS2_feature-plot.png",
   fplot,
   width = 4.5, height = 2.5, units = "in",
   type = "cairo", dpi = 600
