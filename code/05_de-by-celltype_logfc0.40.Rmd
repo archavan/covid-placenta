@@ -531,8 +531,8 @@ The control samples in our data come from C-sections. Which makes this a confoun
 The TIL vs TNL differential gene expression results from [@pique-regi_single_2019] can be used for this. I downloaded the supplementary file. The file is described as follows: "The columns represent: 1) Cluster or cell-type name, 2) Comparison groups or contrast (i.e., TNL vs TIL, TIL vs PTL), 3) Ensembl gene identifier, 4) Gene symbol, 5) baseMean gene baseline expression as calculated by DESeq2, 6) log2 Fold Change of the first group in column two versus the second group, 7) Standard error estimated for the log2 Fold Change, 8) Nominal p-value, 9) q-value or adjusted p-value to control for FDR. Only rows with q < 0.2 are reported.". 
 
 ```{r}
-til <- readxl::read_excel("../info/from-papers/pique-regi_2019/supp/elife-52004-supp5-v2.xls")
-labor <- til %>% filter(Compare == "TNL_v_TIL" & padj < 0.05)
+til <- readxl::read_excel("../ext/from-papers/pique-regi_2019/supp/elife-52004-supp5-v2.xls")
+labor <- til %>% dplyr::filter(Compare == "TNL_v_TIL" & padj < 0.05)
 head(labor)
 ```
 

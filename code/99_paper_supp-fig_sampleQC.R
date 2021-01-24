@@ -16,7 +16,7 @@ seur <- readRDS("data/seurat-object_annotated.rds")
 
 ### uUMI per sample ===========================================================
 n.umi <- ggplot(data = seur@meta.data, 
-                aes(x = orig.ident_renamed, y = nCount_RNA)) +
+                aes(x = sample_id, y = nCount_RNA)) +
   geom_violin(fill = "grey", size = 0.35) +
   facet_grid(. ~ covid + tissue, 
              space = "free", 
@@ -42,7 +42,7 @@ n.umi
 
 ### nGene per sample ==========================================================
 n.gene <- ggplot(data = seur@meta.data, 
-                aes(x = orig.ident_renamed, y = nFeature_RNA)) +
+                aes(x = sample_id, y = nFeature_RNA)) +
   geom_violin(fill = "grey", size = 0.35) +
   facet_grid(. ~ covid + tissue, 
              space = "free", 
@@ -67,23 +67,13 @@ n.gene <- ggplot(data = seur@meta.data,
 n.gene
 
 ## stacked bar: cells/celltype/sample -----------------------------------------
-cell.sample <- table(seur@meta.data$orig.ident_renamed,
-                     seur@meta.data$annotation_merged,
-                     seur@meta.data$covid,
-                     seur@meta.data$tissue) %>% 
-  as.data.frame()
-
-cell.sample <- rename(cell.sample,
-                      "sample" = "Var1",
-                      "celltype" = "Var2",
-                      "covid" = "Var3",
-                      "tissue" = "Var4")
-
-cell.sample$frac <- NA
-for(i in 1:nrow(cell.sample)) {
-  cell.sample$frac[i] <- cell.sample$Freq[i] / 
-    sum(cell.sample$Freq[cell.sample$sample == cell.sample$sample[i]])
-}
+cell.sample <- seur@meta.data %>% 
+  group_by(sample_id, annotation_merged, covid, tissue) %>% 
+  summarize(n_cells = n()) %>% 
+  ungroup() %>% 
+  group_by(sample_id, covid, tissue) %>% 
+  mutate(frac = n_cells / sum(n_cells)) %>% 
+  ungroup()
 
 stack.colors <- c("#6cb9a0",
                   "#a90090",
@@ -112,11 +102,11 @@ clust.order <- c("dec.DSC", "dec.Endo", "dec.SMC", "dec.FB",
                  "APC", "Bcell", "Gran", "Mono_1", "Mono_2", "NK_1", "NK_2", "NK_3", 
                  "Tcell_1", "Tcell_2", "Tcell_3")
 
-cell.sample$celltype <- factor(cell.sample$celltype, levels = clust.order)
+cell.sample$annotation_merged <- factor(cell.sample$annotation_merged, levels = clust.order)
 
 bar.sample <- ggplot(data = cell.sample %>% 
                        filter(frac > 0)) +
-  geom_bar(aes(x = sample, y = frac, fill = celltype),
+  geom_bar(aes(x = sample_id, y = frac, fill = annotation_merged),
            stat = "identity", width = 0.8) +
   scale_fill_manual(name = "Cell type",
                     values = alpha(stack.colors, 0.8)) +
@@ -157,7 +147,7 @@ theme_umap <- theme_classic(base_line_size = 0.25) +
         axis.title = element_blank(),
         axis.ticks = element_blank())
 
-Idents(seur) <- "orig.ident_renamed"
+Idents(seur) <- "sample_id"
 umap.sample.gg <- DimPlot(seur, label = FALSE, shuffle = TRUE) 
 
 umap.sample <- ggplot() +
@@ -166,15 +156,11 @@ umap.sample <- ggplot() +
              size = 0.1) +
   labs(x = "UMAP 1", y = "UMAP 2", tag = "E") +
   scale_color_manual(name = "Sample",
-                     values = c("#c65c8a",
-                                "#7cb843",
-                                "#a361c7",
-                                "#50a166",
-                                "#ca5842",
-                                "#48bcc1",
-                                "#d19a44",
-                                "#6683cb",
-                                "#848039"),
+                     values = c("#ca5e4a",
+                                "#5ba965",
+                                "#c55a9f",
+                                "#ad963d",
+                                "#777acd"),
                      guide = guide_legend(override.aes = list(size = 1))) +
   theme_umap
 
@@ -186,7 +172,7 @@ umap.cntrl <- ggplot(
   data = umap.split.gg$data[umap.split.gg$data$ident == "cntrl", ],
   aes(x = UMAP_1, y = UMAP_2)) +
   geom_point(size = 0.1, color = "grey40") +
-  annotate(geom = "text", label = "ctrl", 
+  annotate(geom = "text", label = "CNTRL", 
            x = Inf, y = -Inf, hjust = 1.25, vjust = -0.5, size = 6/.pt) +
   labs(tag = "D") +
   theme_umap
@@ -215,7 +201,7 @@ l1 <- linesGrob(
   y = unit(c(6-0.5069, 6-0.4433, 6-0.4433, 6-0.5069), units = "in"),
   gp = gpar(colour = "black", lwd = 0.5) 
 )
-t1 <- textGrob(label = "ctrl", 
+t1 <- textGrob(label = "CNTRL", 
                x = unit(mean(c(0.6040, 1.5037)), "in"), 
                y = unit(6-0.3749, "in"), 
                just = c(0.5, 0), 
@@ -237,7 +223,7 @@ l3 <- linesGrob(
   y = unit(c(6-0.5069, 6-0.4433, 6-0.4433, 6-0.5069), units = "in"),
   gp = gpar(colour = "black", lwd = 0.5) 
 )
-t3 <- textGrob(label = "ctrl", 
+t3 <- textGrob(label = "CNTRL", 
                x = unit(mean(c(2.8856, 3.7851)), "in"), 
                y = unit(6-0.3749, "in"), 
                just = c(0.5, 0), 
@@ -259,7 +245,7 @@ l5 <- linesGrob(
   y = unit(c(6-2.5694, 6-2.5058, 6-2.5058, 6-2.5694), units = "in"),
   gp = gpar(colour = "black", lwd = 0.5) 
 )
-t5 <- textGrob(label = "ctrl", 
+t5 <- textGrob(label = "CNTRL", 
                x = unit(mean(c(0.6040, 2.7608)), "in"), 
                y = unit(6-2.4375, "in"), 
                just = c(0.5, 0), 
@@ -286,12 +272,12 @@ composite <- ggdraw(composite) +
 
 cowplot::ggsave2(
   composite, 
-  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v2.png",
+  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v3.png",
   width = 6, height = 6, units = "in", type = "cairo", dpi = 600
 )
 
 cowplot::ggsave2(
-  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v2.pdf",
+  filename = "results/99_paper-figures/supp-fig_sampleQC/supp-fig_sampleQC_composite_v3.pdf",
   composite, 
   width = 6, height = 6, units = "in"
 )

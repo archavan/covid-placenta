@@ -42,8 +42,8 @@ We want to (1) read these data, (2) sum counts for all cell with the same cell t
 
 ```{r}
 ### read data
-vento.meta <- read.table("../info/from-papers/vento-tormo_2018/10x_arrayexpress/meta_10x.txt", header = TRUE, sep = "\t")
-vento.raw <- readSparseCounts("../info/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE, chunk = 100)  # have to use readSparseCounts because the file is too big. 
+vento.meta <- read.table("../ext/from-papers/vento-tormo_2018/10x_arrayexpress/meta_10x.txt", header = TRUE, sep = "\t")
+vento.raw <- readSparseCounts("../ext/from-papers/vento-tormo_2018/10x_arrayexpress/raw_data_10x.txt", sep = "\t", row.names = TRUE, col.names = TRUE, chunk = 100)  # have to use readSparseCounts because the file is too big. 
 ```
 
 The counts matrix is for 64734 cells. 
@@ -144,8 +144,8 @@ rm(vento.sce)
 ### Data
 ```{r}
 ### read data
-surya.dec <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S1.xlsx", sheet = "Decidua_averages_TPM10K", col_names = TRUE, range = "A1:N16968", trim_ws = TRUE)
-surya.vil <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S1.xlsx", sheet = "Villi_averages_TPM10K", col_names = TRUE, range = "A1:J17107", trim_ws = TRUE)
+surya.dec <- readxl::read_excel("../ext/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S1.xlsx", sheet = "Decidua_averages_TPM10K", col_names = TRUE, range = "A1:N16968", trim_ws = TRUE)
+surya.vil <- readxl::read_excel("../ext/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S1.xlsx", sheet = "Villi_averages_TPM10K", col_names = TRUE, range = "A1:J17107", trim_ws = TRUE)
 
 ### prefixes
 names(surya.dec)[names(surya.dec) != "Gene"] <- paste0("surya_dec.", 
@@ -188,7 +188,7 @@ This file was written on a different operating system, so the end of line charac
 
 ```{r}
 ### read data
-pavli.tpm <- read.table("../info/from-papers/pavlicev_2017/data/SC-ESC-SYN.txt", sep = "\t")
+pavli.tpm <- read.table("../ext/from-papers/pavlicev_2017/data/SC-ESC-SYN.txt", sep = "\t")
 
 ### column names
 # fix the colnames = TRUE issue 
@@ -245,7 +245,7 @@ Steps:
 
 ```{r}
 # function for plotting correlation between celltypes from two datasets
-celltypeCorPlot <- function(expdat, reference, query, ...){
+celltypeCorPlot <- function(expdat, reference, query, ...) {
   
   ## build correlation matrix from expression data
   cor.matrix <- cor(expdat[, names(expdat)[names(expdat) != "gene_name"]], 
@@ -322,21 +322,21 @@ Because we are looking for the most similar celltypes to `query` in `reference`,
     
 These observations are encouraging, suggesting this approach might work for first-pass cell type annotations of our data. We can measure correlations with both vento and surya data. 
 
-```{r fig.width=6, fig.asp=0.55}
+```{r }
 pavli.vs.surya <- celltypeCorPlot(expdat = vsp, query = "pavli", reference = "surya")
 cowplot::ggsave2(pavli.vs.surya, filename = "../results/01_reference-atlas/corr-plot_pavli-vs-surya.pdf", 
                  device = "pdf", width = 6, height = 4, units = "in")
 print(pavli.vs.surya)
 ```
 
-```{r fig.width=7, fig.asp=0.55}
+```{r}
 pavli.vs.vento <- celltypeCorPlot(expdat = vsp, query = "pavli", reference = "vento")
 cowplot::ggsave2(pavli.vs.vento, filename = "../results/01_reference-atlas/corr-plot_pavli-vs-vento.pdf", 
                  device = "pdf", width = 7, height = 4, units = "in")
 print(pavli.vs.vento)
 ```
 
-```{r fig.width=7, fig.asp=0.8}
+```{r}
 surya.vs.vento <- celltypeCorPlot(expdat = vsp, query = "surya", reference = "vento")
 cowplot::ggsave2(surya.vs.vento, filename = "../results/01_reference-atlas/corr-plot_surya-vs-vento.pdf", 
                  device = "pdf", width = 7, height = 6, units = "in")

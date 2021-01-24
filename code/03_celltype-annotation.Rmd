@@ -38,7 +38,7 @@ We can take a first pass at annotating the clusters from our 10x data by compari
 This is the sample information sent by Alice. Not sure about the INP id for `AL09` and `AL10`. The library for `INP188` villi (associated with `AL07`) was problematic, so is not used.  
 
 ```{r}
-sample.info <- read.delim("../info/from-alice/sample_info.tsv", stringsAsFactors = FALSE)
+sample.info <- read_csv("../ext/from-alice/sample_info.csv")
 sample.info %>% kable(caption = "Sample information") %>% kable_styling(full_width = FALSE)
 ```
 
@@ -46,7 +46,7 @@ sample.info %>% kable(caption = "Sample information") %>% kable_styling(full_wid
 Read the `Seurat`-processed (by Eric) data sent by Alice.  
 
 ```{r}
-seur <- readRDS("../info/from-alice/placenta.rds")
+seur <- readRDS("../ext/from-alice/placenta.rds")
 
 head(seur@meta.data)
 ```
@@ -60,9 +60,9 @@ seur@meta.data$orig.ident <- gsub("(AL)(\\d)$", "\\10\\2", seur@meta.data$orig.i
 
 # add additional metadata (covid status, tissue)
 seur@meta.data$covid <- sample.info$covid[match(x = seur@meta.data$orig.ident, 
-                                                table = sample.info$sample_id)]
+                                                table = sample.info$AL_id)]
 seur@meta.data$tissue <- sample.info$tissue[match(x = seur@meta.data$orig.ident,
-                                                  table = sample.info$sample_id)]
+                                                  table = sample.info$AL_id)]
 
 # rename clusters for consistency
 seur$seurat_clusters <- paste0("clust_", seur$seurat_clusters)
@@ -74,29 +74,9 @@ Idents(seur) <- seur@meta.data$seurat_clusters
 ```
 
 ```{r}
-# add another column to metadata with renames orig.idents as COVID_1, CNTRL_1 instead of AL01, AL02, etc.
-AL_covid_mapping <- unique(seur@meta.data[, c("orig.ident", "covid")])
-
-AL_covid_mapping$renamed <- NA
-counter.covid <- 1
-counter.cntrl <- 1
-for(i in 1:nrow(AL_covid_mapping)) {
-  
-  if(AL_covid_mapping$covid[i] == "covid") {
-    AL_covid_mapping$renamed[i] <- paste0("COVID_", counter.covid)
-    counter.covid <- counter.covid + 1 
-  }
-  
-  if(AL_covid_mapping$covid[i] == "cntrl") {
-    AL_covid_mapping$renamed[i] <- paste0("CNTRL_", counter.cntrl)
-    counter.cntrl <- counter.cntrl + 1
-  }
-}
-
-seur@meta.data$orig.ident_renamed <- AL_covid_mapping$renamed[
-  match(x = seur@meta.data$orig.ident, 
-        table = AL_covid_mapping$orig.ident)
-]
+# add sample_id
+seur@meta.data$sample_id <- sample.info$sample_id[match(x = seur@meta.data$orig.ident, 
+                                                        table = sample.info$AL_id)]
 ```
 
 ## Average by cluster
@@ -133,7 +113,7 @@ head(plac)
 Before moving to annotating clusters by comparison with the reference dataset, first we will look at the correlation structure within the dataset.
 
 ## Correlation matrix
-```{r fig.asp=0.7}
+```{r}
 # build correlation matrix from expression data
 cor.matrix <- cor(plac %>% dplyr::select(starts_with("clust")), method = 'spearman')
 
@@ -251,7 +231,7 @@ for(i in unique(cormat$Var2)){
 
 ```{r}
 # plotting function
-clustAnnoPlot <- function(dat, query, reference){
+clustAnnoPlot <- function(dat, query, reference) {
   
   dat <- dat[which(dat$Var2_source == query & dat$Var1_source == reference), ]
   
@@ -288,7 +268,7 @@ clustAnnoPlot <- function(dat, query, reference){
 ```
 
 ### Against Vento-Tormo et al
-```{r fig.asp=0.9}
+```{r}
 ## Annotation plots
 anno.vento <- clustAnnoPlot(dat = cormat, query = "clust", reference = "vento")
 cowplot::ggsave2(anno.vento, device = "pdf", width = 7.5, height = 6.5, units = "in",
@@ -297,7 +277,7 @@ print(anno.vento)
 ```
 
 ### Against Suryavanshi et al
-```{r fig.asp=0.9}
+```{r}
 ## Annotation plots
 anno.surya <- clustAnnoPlot(dat = cormat, query = "clust", reference = "surya")
 cowplot::ggsave2(anno.surya, device = "pdf", width = 7.5, height = 6.5, units = "in",
@@ -595,7 +575,7 @@ We can also check if the cluster is enriched is genes that are labeled as marker
 
 ```{r message=FALSE}
 # read top 30 markers from vento-tormo et al
-markers.vento <- readxl::read_excel("../info/from-papers/vento-tormo_2018/41586_2018_698_MOESM1_ESM/Supplementary Table 2.xlsx")
+markers.vento <- readxl::read_excel("../ext/from-papers/vento-tormo_2018/41586_2018_698_MOESM1_ESM/Supplementary Table 2.xlsx")
 
 # rename columns
 markers.vento <- dplyr::rename(markers.vento,
@@ -625,8 +605,8 @@ markers.vento <- apply(X = markers.vento, MARGIN = 2, FUN = function(x) gsub("_E
 
 [@suryawanshi_single-cell_2018] have also provided a list of top30 marker genes in the supplementary data. 
 ```{r}
-markers.surya.vil <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S3.xlsx", sheet = "Villi", range = "A1:G271", trim_ws = TRUE)
-markers.surya.dec <- readxl::read_excel("../info/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S3.xlsx", sheet = "Deciuda", range = "A1:G331", trim_ws = TRUE)
+markers.surya.vil <- readxl::read_excel("../ext/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S3.xlsx", sheet = "Villi", range = "A1:G271", trim_ws = TRUE)
+markers.surya.dec <- readxl::read_excel("../ext/from-papers/suryawanshi_2018/supp-data/aau4788_Data_file_S3.xlsx", sheet = "Deciuda", range = "A1:G331", trim_ws = TRUE)
 
 markers.surya.vil <- dplyr::rename(markers.surya.vil, cluster = `cell type`)
 
