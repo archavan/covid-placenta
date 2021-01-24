@@ -40,8 +40,12 @@ vignettes/*.pdf
 
 ### additions below this
 **/data
-**/info
 **/results
 **/notes
+*.rds
+
+ext/*/*/
+!ext/from-alice/sample_info.csv
+
 
 

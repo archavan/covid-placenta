@@ -1,0 +1,11 @@
+﻿AL_id,inp_id,sample_id,covid,tissue 
+AL01,INP88,COVID_4,covid,decidua
+AL02,INP88,COVID_4,covid,villi
+AL03,INP90,COVID_5,covid,decidua
+AL04,INP90,COVID_5,covid,villi
+AL05,INP187,CTRL_1,cntrl,decidua
+AL06,INP187,CTRL_1,cntrl,villi
+AL07,INP188,CTRL_2,cntrl,decidua
+AL08,INP188,CTRL_2,cntrl,villi
+AL09,,CTRL_3,cntrl,decidua
+AL10,,CTRL_3,cntrl,villi
