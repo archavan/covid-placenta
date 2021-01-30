@@ -44,8 +44,8 @@ vignettes/*.pdf
 **/notes
 *.rds
 
-ext/*/*/
-!ext/from-alice/sample_info.csv
+ext
+
 
 
 
