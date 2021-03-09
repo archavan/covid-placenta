@@ -9,19 +9,19 @@ library(enrichplot)
 
 ### data ======================================================================
 up <- readxl::read_excel(
-  "info/from-alice/for-go/2020.10.04_bulkseqhits-forGO.xlsx", 
+  "ext/from-alice/for-go/2020.10.04_bulkseqhits-forGO.xlsx", 
   sheet = "upregulated (COVID vs. ctrl)", 
   col_names = TRUE, trim_ws = TRUE
 )
 
 down <- readxl::read_excel(
-  "info/from-alice/for-go/2020.10.04_bulkseqhits-forGO.xlsx",
+  "ext/from-alice/for-go/2020.10.04_bulkseqhits-forGO.xlsx",
   sheet = "downregulated (COVID vs. ctrl)",
   col_names = TRUE, trim_ws = TRUE
 )
 
 bg <- readxl::read_excel(
-  "info/from-alice/for-go/2020.10.04_bulkseqhits-forGO.xlsx",
+  "ext/from-alice/for-go/2020.10.04_bulkseqhits-forGO.xlsx",
   sheet = "background list",
   col_names = TRUE, trim_ws = TRUE
 )
