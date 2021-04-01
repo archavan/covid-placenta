@@ -26,13 +26,13 @@ do
 	cd /home/arc78/scratch60/covid-placenta/data/00_fastq
 	mkdir $sample
 	cd $sample
-	wget -r -nH --cut-dirs=3 -np --accept ".gz" "http://fcb.ycga.yale.edu:3010/fyiZHAf0T61ABnyAN7GnonRlVkOa9/060120/"$sample"_HCR_fqs/"
+	wget -r -nH --cut-dirs=3 -np --accept ".gz" "http://fcb.ycga.yale.edu:3010/kSQvzi5anisrelWEbQXa6cCfEa7oN/060520/"$sample"_HCR_fqs/"
 done
 
 
 
 ## rename directories to make their names consistent.
-cd ~/research/covid-placenta/data/00_fastq
+cd /home/arc78/scratch60/covid-placenta/data/00_fastq
 
 mv AL-1 AL1
 mv AL-2 AL2
