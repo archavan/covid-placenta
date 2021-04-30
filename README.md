@@ -1,11 +1,15 @@
 # covid-placenta
-Code associated with Lu-Culligan et al. 2021
+Code associated with Lu-Culligan et al. *Med* (2021)
 
-**Title**: SARS-CoV-2 infection in pregnancy is associated with robust inflammatory response at the maternal-fetal interface
+<a href="https://doi.org/10.1016/j.medj.2021.04.016"><img src="https://img.shields.io/badge/DOI-10.1016/j.medj.2021.04.016-blue" alt="DOI"></a>
+
+**Title**: Maternal respiratory SARS-CoV-2 infection in pregnancy is associated with a robust inflammatory response at the maternal-fetal interface
 
 **Authors**: Alice Lu-Culligan, Arun R. Chavan, Pavithra Vijayakumar, Lina Irshaid, Edward M. Courchaine, Kristin M. Milano, Zhonghua Tang, Scott D. Pope, Eric Song, Chantal B.F. Vogels, William J. Lu-Culligan, Katherine H. Campbell, Arnau Casanovas-Massana, Santos Bermejo, Jessica M. Toothaker, Hannah J. Lee, Feimei Liu, Wade Schulz, John Fournier, M. Catherine Muenker, Adam J. Moore, Yale IMPACT Team, Liza Konnikova, Karla M. Neugebauer, Aaron Ring, Nathan D. Grubaugh, Albert I. Ko, Raffaella Morotti, Seth Guller, Harvey J. Kliman, Akiko Iwasaki, Shelli F. Farhadian
 
 **Abstract**: Pregnant women appear to be at increased risk for severe outcomes associated with COVID-19, but the pathophysiology underlying this increased morbidity and its potential impact on the developing fetus is not well understood. In this study of pregnant women with and without COVID-19, we assessed viral and immune dynamics at the placenta during maternal SARS-CoV-2 infection. Amongst uninfected women, ACE2 was detected by immunohistochemistry in syncytiotrophoblast cells of the normal placenta during early pregnancy but was rarely seen in healthy placentas at full term. Term placentas from women infected with SARS-CoV-2, however, displayed a significant increase in ACE2 levels. Using immortalized cell lines and primary isolated placental cells, we determined the vulnerability of various placental cell types to direct infection by SARS-CoV-2 in vitro. Yet, despite the susceptibility of placental cells to SARS-CoV-2 infection, viral RNA was detected in the placentas of only a subset (∼13%) of women in this cohort. Through single cell transcriptomic analyses, we found that the maternal-fetal interface of SARS-CoV-2-infected women exhibited markers associated with pregnancy complications, such as preeclampsia, and robust immune responses, including increased activation of placental NK and T cells and increased expression of interferon-related genes. Overall, this study suggests that SARS-CoV-2 is associated with immune activation at the maternal-fetal interface even in the absence of detectable local viral invasion. While this likely represents a protective mechanism shielding the placenta from infection, inflammatory changes in the placenta may also contribute to poor pregnancy outcomes and thus warrant further investigation.
+
+**Data**: RNA-seq data used in this paper are available at NCBI GEO accession numbers [GSE171995](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE171995) (bulk RNA seq) and [GSE171381](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE171381) (single-cell RNA seq).
 
 **Preprint**: https://www.medrxiv.org/content/10.1101/2021.01.25.21250452v1
 
